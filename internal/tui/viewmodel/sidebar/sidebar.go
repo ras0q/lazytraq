@@ -17,7 +17,7 @@ func New(w, h int, traqClient *traqapi.Client) *SidebarModel {
 	return &SidebarModel{
 		w:                w,
 		h:                h,
-		channelTreeModel: NewChannelsModel(w-2, int(float64(h)*0.3)-2, traqClient),
+		channelTreeModel: NewChannelsModel(w-2, h-2, traqClient),
 	}
 }
 
@@ -44,12 +44,6 @@ func (m *SidebarModel) View() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				lipgloss.NewStyle().
-					Border(lipgloss.DoubleBorder()).
-					Render(m.channelTreeModel.View()),
-				lipgloss.NewStyle().
-					Border(lipgloss.DoubleBorder()).
-					Render(m.channelTreeModel.View()),
 				lipgloss.NewStyle().
 					Border(lipgloss.DoubleBorder()).
 					Render(m.channelTreeModel.View()),
