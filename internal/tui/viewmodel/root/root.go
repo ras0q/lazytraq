@@ -6,10 +6,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ras0q/lazytraq/internal/model/content"
-	"github.com/ras0q/lazytraq/internal/model/sidebar"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/content"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 )
 
 type rootModel struct {

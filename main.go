@@ -6,7 +6,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ras0q/lazytraq/internal/model/root"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/root"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/term"
 )
