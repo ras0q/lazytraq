@@ -1,4 +1,4 @@
-package mainview
+package content
 
 import (
 	"context"

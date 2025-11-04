@@ -6,16 +6,16 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ras0q/lazytraq/internal/model/mainview"
+	"github.com/ras0q/lazytraq/internal/model/content"
 	"github.com/ras0q/lazytraq/internal/model/sidebar"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 )
 
 type rootModel struct {
-	sidebar  tea.Model
-	mainview tea.Model
-	errCh    chan error
+	sidebar tea.Model
+	content tea.Model
+	errCh   chan error
 }
 
 func New(w, h int) (*rootModel, error) {
@@ -28,12 +28,12 @@ func New(w, h int) (*rootModel, error) {
 	}
 
 	sidebarWidth := int(float64(w) * 0.3)
-	mainviewWidth := w - sidebarWidth
+	contentWidth := w - sidebarWidth
 
 	return &rootModel{
-		sidebar:  sidebar.New(sidebarWidth, h, traqClient),
-		mainview: mainview.New(mainviewWidth, h, traqClient),
-		errCh:    make(chan error),
+		sidebar: sidebar.New(sidebarWidth, h, traqClient),
+		content: content.New(contentWidth, h, traqClient),
+		errCh:   make(chan error),
 	}, nil
 }
 
@@ -42,7 +42,7 @@ var _ tea.Model = (*rootModel)(nil)
 func (m *rootModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.sidebar.Init(),
-		m.mainview.Init(),
+		m.content.Init(),
 	)
 }
 
@@ -72,7 +72,7 @@ func (m *rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.sidebar, cmd = m.sidebar.Update(msg)
 	cmds = append(cmds, cmd)
 
-	m.mainview, cmd = m.mainview.Update(msg)
+	m.content, cmd = m.content.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
@@ -82,6 +82,6 @@ func (m *rootModel) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		m.sidebar.View(),
-		m.mainview.View(),
+		m.content.View(),
 	)
 }
