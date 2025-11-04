@@ -95,22 +95,24 @@ func (m *ChannelTreeModel) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[
 				break
 			}
 
-			parentID, ok := channelNode.Channel.GetParentId().Get()
-			if !ok {
-				break
-			}
-
-			newFocusedID := focusedID
+			var newFocusedID uuid.UUID
 			if channelNode.IsOpen.Load() {
 				channelNode.IsOpen.Store(false)
+				newFocusedID = focusedID
 			} else {
-				parentNode, ok := m.currentTree.Search(parentID)
-				if !ok {
-					break
-				}
+				parentID, ok := channelNode.Channel.GetParentId().Get()
+				if ok {
+					parentNode, ok := m.currentTree.Search(parentID)
+					if !ok {
+						break
+					}
 
-				parentNode.IsOpen.Store(false)
-				newFocusedID = parentID
+					parentNode.IsOpen.Store(false)
+					newFocusedID = parentID
+				} else {
+					// Fold root channel
+					m.currentTree.IsOpen.Store(false)
+				}
 			}
 
 			cmd = tea.Batch(

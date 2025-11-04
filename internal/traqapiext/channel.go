@@ -91,7 +91,6 @@ func (m *ChannelNode) Search(id uuid.UUID) (*ChannelNode, bool) {
 	}
 
 	return nil, false
-
 }
 
 func ConstructTree(channels []traqapi.Channel) *ChannelNode {
