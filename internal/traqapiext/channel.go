@@ -3,6 +3,7 @@ package traqapiext
 import (
 	"cmp"
 	"iter"
+	"sort"
 	"sync/atomic"
 
 	"github.com/google/uuid"
@@ -96,6 +97,10 @@ func (m *ChannelNode) Search(id uuid.UUID) (*ChannelNode, bool) {
 func ConstructTree(channels []traqapi.Channel) *ChannelNode {
 	channelMap := make(map[uuid.UUID]*ChannelNode)
 	var roots []*ChannelNode
+
+	sort.SliceStable(channels, func(i, j int) bool {
+		return channels[i].GetName() < channels[j].GetName()
+	})
 
 	for _, channel := range channels {
 		channelMap[channel.GetID()] = &ChannelNode{
