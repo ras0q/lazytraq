@@ -28,7 +28,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/ras0q/bubbletree v0.0.0-20251104092348-69b54d4dbf9e // indirect
+	github.com/ras0q/bubbletree v0.0.0-20251104102523-5d24ec7fe34d // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect

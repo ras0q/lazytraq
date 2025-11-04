@@ -2,7 +2,6 @@ package root
 
 import (
 	"fmt"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -15,7 +14,7 @@ import (
 type rootModel struct {
 	sidebar tea.Model
 	content tea.Model
-	errCh   chan error
+	ErrCh   chan error
 }
 
 func New(w, h int) (*rootModel, error) {
@@ -33,7 +32,7 @@ func New(w, h int) (*rootModel, error) {
 	return &rootModel{
 		sidebar: sidebar.New(sidebarWidth, h, traqClient),
 		content: content.New(contentWidth, h, traqClient),
-		errCh:   make(chan error),
+		ErrCh:   make(chan error),
 	}, nil
 }
 
@@ -47,16 +46,9 @@ func (m *rootModel) Init() tea.Cmd {
 }
 
 func (m *rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	f, err := os.OpenFile("log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		panic(err)
-	}
-	defer func() { _ = f.Close() }()
-	_, _ = fmt.Fprintf(f, "update message: %v\n", msg)
-
 	switch msg := msg.(type) {
 	case error:
-		m.errCh <- msg
+		m.ErrCh <- msg
 		return m, tea.Quit
 
 	case tea.KeyMsg:

@@ -94,6 +94,10 @@ github.com/ras0q/bubbletree v0.0.0-20251104091032-5f16046d46fb h1:brO+vJqgDLJj5O
 github.com/ras0q/bubbletree v0.0.0-20251104091032-5f16046d46fb/go.mod h1:X23bqASUZUFND3doLsOyDaVo2Ma1MOtz1VIcT9B9xC4=
 github.com/ras0q/bubbletree v0.0.0-20251104092348-69b54d4dbf9e h1:KY/JKkXi7qz9yZUZQBeH5fbBhvBQ9LcparNcRWAwhes=
 github.com/ras0q/bubbletree v0.0.0-20251104092348-69b54d4dbf9e/go.mod h1:X23bqASUZUFND3doLsOyDaVo2Ma1MOtz1VIcT9B9xC4=
+github.com/ras0q/bubbletree v0.0.0-20251104101627-4c204e21e696 h1:SKV9CEfIgxb0JZkcc4zC/vj6qdLcgXPPozckGP49Zn8=
+github.com/ras0q/bubbletree v0.0.0-20251104101627-4c204e21e696/go.mod h1:OtJZ37hrMOvnyVfk9tiB40A5nYA9e1TD14YFRQY1EZI=
+github.com/ras0q/bubbletree v0.0.0-20251104102523-5d24ec7fe34d h1:dbTHuHxrim77XQxDHNOL+3niWtaWVuM+9+B1I3tjQkU=
+github.com/ras0q/bubbletree v0.0.0-20251104102523-5d24ec7fe34d/go.mod h1:X23bqASUZUFND3doLsOyDaVo2Ma1MOtz1VIcT9B9xC4=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=

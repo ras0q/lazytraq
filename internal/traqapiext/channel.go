@@ -3,46 +3,61 @@ package traqapiext
 import (
 	"cmp"
 	"iter"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 	"github.com/ras0q/bubbletree"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 )
 
-type ChannelItem struct {
+type ChannelNode struct {
 	Channel    traqapi.Channel
-	ChildItems []*ChannelItem
+	ChildNodes []*ChannelNode
+	IsOpen     atomic.Bool
 }
 
-var _ bubbletree.Node[uuid.UUID] = ChannelItem{}
+var _ bubbletree.Node[uuid.UUID] = (*ChannelNode)(nil)
 
 // ID implements bubbletree.Tree.
-func (m ChannelItem) ID() uuid.UUID {
+func (m *ChannelNode) ID() uuid.UUID {
 	return m.Channel.GetID()
 }
 
 // Content implements bubbletree.Tree.
-func (m ChannelItem) Content() string {
-	return cmp.Or(m.Channel.GetName(), ".")
+func (m *ChannelNode) Content() string {
+	prefix := ""
+	if !m.IsLeaf() {
+		if m.IsOpen.Load() {
+			prefix = "▼"
+		} else {
+			prefix = "▶"
+		}
+	}
+
+	return prefix + cmp.Or(m.Channel.GetName(), ".")
 }
 
 // Children implements bubbletree.Tree.
-func (m ChannelItem) Children() iter.Seq2[bubbletree.Node[uuid.UUID], bool] {
+func (m *ChannelNode) Children() iter.Seq2[bubbletree.Node[uuid.UUID], bool] {
 	return func(yield func(bubbletree.Node[uuid.UUID], bool) bool) {
-		children := make([]*ChannelItem, 0, len(m.ChildItems))
+		children := make([]*ChannelNode, 0, len(m.ChildNodes))
 		excludeArchived := true // TODO: make this configurable
 		if excludeArchived {
 			if m.Channel.GetArchived() {
 				return
 			}
 
-			for _, child := range m.ChildItems {
+			for _, child := range m.ChildNodes {
 				if !child.Channel.GetArchived() {
 					children = append(children, child)
 				}
 			}
 		} else {
-			children = m.ChildItems
+			children = m.ChildNodes
+		}
+
+		if !m.IsOpen.Load() {
+			return
 		}
 
 		for i, child := range children {
@@ -54,14 +69,38 @@ func (m ChannelItem) Children() iter.Seq2[bubbletree.Node[uuid.UUID], bool] {
 	}
 }
 
-func ConstructTree(channels []traqapi.Channel) ChannelItem {
-	channelMap := make(map[uuid.UUID]*ChannelItem)
-	var roots []*ChannelItem
+func (m *ChannelNode) IsLeaf() bool {
+	return len(m.ChildNodes) == 0
+}
+
+func (m *ChannelNode) Search(id uuid.UUID) (*ChannelNode, bool) {
+	if m.Channel.GetID() == id {
+		return m, true
+	}
+
+	for _, child := range m.ChildNodes {
+		if child.Channel.GetID() == id {
+			return child, true
+		}
+
+		result, ok := child.Search(id)
+		if ok {
+			return result, true
+		}
+	}
+
+	return nil, false
+
+}
+
+func ConstructTree(channels []traqapi.Channel) *ChannelNode {
+	channelMap := make(map[uuid.UUID]*ChannelNode)
+	var roots []*ChannelNode
 
 	for _, channel := range channels {
-		channelMap[channel.GetID()] = &ChannelItem{
+		channelMap[channel.GetID()] = &ChannelNode{
 			Channel:    channel,
-			ChildItems: []*ChannelItem{},
+			ChildNodes: []*ChannelNode{},
 		}
 	}
 
@@ -74,11 +113,15 @@ func ConstructTree(channels []traqapi.Channel) ChannelItem {
 		}
 
 		if parentItem, exists := channelMap[parentID]; exists {
-			parentItem.ChildItems = append(parentItem.ChildItems, channelMap[channelID])
+			parentItem.ChildNodes = append(parentItem.ChildNodes, channelMap[channelID])
 		}
 	}
 
-	return ChannelItem{
-		ChildItems: roots,
+	node := ChannelNode{
+		ChildNodes: roots,
+		IsOpen:     atomic.Bool{},
 	}
+	node.IsOpen.Store(true)
+
+	return &node
 }

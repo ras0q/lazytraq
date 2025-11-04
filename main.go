@@ -7,7 +7,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/root"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/term"
 )
 
@@ -31,26 +30,15 @@ func runProgram() error {
 		return fmt.Errorf("create root model: %w", err)
 	}
 
-	p := tea.NewProgram(model, tea.WithAltScreen())
-	errCh := make(chan error)
+	p := tea.NewProgram(model)
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("run tea program: %w", err)
+	}
 
-	eg := errgroup.Group{}
-	eg.Go(func() error {
-		return <-errCh
-	})
+	close(model.ErrCh)
 
-	eg.Go(func() error {
-		if _, err := p.Run(); err != nil {
-			return err
-		}
-
-		errCh <- nil
-
-		return nil
-	})
-
-	if err := eg.Wait(); err != nil {
-		return fmt.Errorf("run program: %w", err)
+	if err := <-model.ErrCh; err != nil {
+		return fmt.Errorf("application error: %w", err)
 	}
 
 	return nil

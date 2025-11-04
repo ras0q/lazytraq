@@ -16,15 +16,20 @@ type ChannelTreeModel struct {
 	w, h       int
 	traqClient *traqapi.Client
 	treeModel  bubbletree.Model[uuid.UUID]
+
+	currentTree *traqapiext.ChannelNode
 }
 
 func NewChannelsModel(w, h int, traqClient *traqapi.Client) *ChannelTreeModel {
-	return &ChannelTreeModel{
+	model := &ChannelTreeModel{
 		w:          w,
 		h:          h,
 		traqClient: traqClient,
 		treeModel:  bubbletree.New[uuid.UUID](w, h),
 	}
+	model.treeModel.OnUpdate = model.OnTreeUpdate
+
+	return model
 }
 
 var _ tea.Model = (*ChannelTreeModel)(nil)
@@ -39,7 +44,9 @@ func (m *ChannelTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case *traqapi.ChannelList:
-		tree := traqapiext.ConstructTree(msg.Public)
+		publicChannels := msg.Public
+		tree := traqapiext.ConstructTree(publicChannels)
+		m.currentTree = tree
 		cmd := m.treeModel.SetTree(tree)
 		cmds = append(cmds, cmd)
 	}
@@ -70,4 +77,65 @@ func (m *ChannelTreeModel) getChannelsCmd(ctx context.Context) tea.Cmd {
 
 		return channels
 	}
+}
+
+func (m *ChannelTreeModel) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID], focusedID uuid.UUID, msg tea.Msg) tea.Cmd {
+	if m.currentTree == nil {
+		return nil
+	}
+
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "h":
+			channelNode, ok := m.currentTree.Search(focusedID)
+			if !ok {
+				break
+			}
+
+			parentID, ok := channelNode.Channel.GetParentId().Get()
+			if !ok {
+				break
+			}
+
+			newFocusedID := focusedID
+			if channelNode.IsOpen.Load() {
+				channelNode.IsOpen.Store(false)
+			} else {
+				parentNode, ok := m.currentTree.Search(parentID)
+				if !ok {
+					break
+				}
+
+				parentNode.IsOpen.Store(false)
+				newFocusedID = parentID
+			}
+
+			cmd = tea.Batch(
+				m.treeModel.SetTree(m.currentTree),
+				m.treeModel.SetFocusedID(newFocusedID),
+			)
+
+		case "l":
+			channelNode, ok := m.currentTree.Search(focusedID)
+			if !ok {
+				break
+			}
+
+			if channelNode.IsLeaf() {
+				break
+			}
+
+			channelNode.IsOpen.Store(true)
+
+			cmd = tea.Batch(
+				m.treeModel.SetTree(m.currentTree),
+				m.treeModel.SetFocusedID(focusedID),
+			)
+		}
+	}
+
+	return cmd
 }
