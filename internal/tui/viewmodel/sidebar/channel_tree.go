@@ -4,17 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/google/uuid"
+	"github.com/ras0q/bubbletree"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 )
 
 type ChannelTreeModel struct {
-	w, h              int
-	traqClient        *traqapi.Client
-	channelsListModel list.Model
+	w, h       int
+	traqClient *traqapi.Client
+	treeModel  bubbletree.Model[uuid.UUID]
 }
 
 func NewChannelsModel(w, h int, traqClient *traqapi.Client) *ChannelTreeModel {
@@ -22,12 +23,7 @@ func NewChannelsModel(w, h int, traqClient *traqapi.Client) *ChannelTreeModel {
 		w:          w,
 		h:          h,
 		traqClient: traqClient,
-		channelsListModel: list.New(
-			[]list.Item{},
-			list.NewDefaultDelegate(),
-			w,
-			h,
-		),
+		treeModel:  bubbletree.New[uuid.UUID](w, h),
 	}
 }
 
@@ -39,24 +35,18 @@ func (m *ChannelTreeModel) Init() tea.Cmd {
 }
 
 func (m *ChannelTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0, 2)
+
 	switch msg := msg.(type) {
 	case *traqapi.ChannelList:
-		channels := msg.Public
-		itemsLen := len(m.channelsListModel.Items())
-		for i, channel := range channels {
-			m.channelsListModel.InsertItem(itemsLen+i, traqapiext.ChannelItem{
-				Channel: channel,
-			})
-			break // TODO: fix performance issue
-		}
-
-		return m, nil
+		tree := traqapiext.ConstructTree(msg.Public)
+		cmd := m.treeModel.SetTree(tree)
+		cmds = append(cmds, cmd)
 	}
 
-	cmds := make([]tea.Cmd, 0, 2)
 	var cmd tea.Cmd
 
-	m.channelsListModel, cmd = m.channelsListModel.Update(msg)
+	m.treeModel, cmd = m.treeModel.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
@@ -67,7 +57,7 @@ func (m *ChannelTreeModel) View() string {
 		Width(m.w).
 		Height(m.h).
 		Render(
-			m.channelsListModel.View(),
+			m.treeModel.View(),
 		)
 }
 
