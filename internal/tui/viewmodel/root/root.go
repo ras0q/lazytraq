@@ -1,21 +1,32 @@
 package root
 
 import (
+	"context"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
+	"github.com/ras0q/lazytraq/internal/tui/shared"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/content"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 )
 
 type rootModel struct {
 	sidebar tea.Model
-	content tea.Model
+	content *content.MainViewModel
 	ErrCh   chan error
+
+	focus focusArea
 }
+
+type focusArea int
+
+const (
+	focusAreaSidebar focusArea = iota
+	focusAreaContent
+)
 
 func New(w, h int) (*rootModel, error) {
 	traqClient, err := traqapi.NewClient(
@@ -46,6 +57,9 @@ func (m *rootModel) Init() tea.Cmd {
 }
 
 func (m *rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0, 10)
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case error:
 		m.ErrCh <- msg
@@ -56,16 +70,27 @@ func (m *rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		}
+
+	case shared.ReturnToSidebarMsg:
+		m.focus = focusAreaSidebar
+
+	case shared.OpenChannelMsg:
+		channelID := msg.ID
+		m.focus = focusAreaContent
+		cmd = m.content.GetMessagesCmd(context.Background(), channelID)
+		cmds = append(cmds, cmd)
 	}
 
-	cmds := make([]tea.Cmd, 0, 10)
-	var cmd tea.Cmd
+	switch m.focus {
+	case focusAreaSidebar:
+		m.sidebar, cmd = m.sidebar.Update(msg)
+		cmds = append(cmds, cmd)
 
-	m.sidebar, cmd = m.sidebar.Update(msg)
-	cmds = append(cmds, cmd)
-
-	m.content, cmd = m.content.Update(msg)
-	cmds = append(cmds, cmd)
+	case focusAreaContent:
+		_content, cmd := m.content.Update(msg)
+		m.content = _content.(*content.MainViewModel)
+		cmds = append(cmds, cmd)
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -73,7 +98,21 @@ func (m *rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *rootModel) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		m.sidebar.View(),
-		m.content.View(),
+		withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
+		withBorder(m.content.View(), m.focus == focusAreaContent),
 	)
+}
+
+var borderStyle = lipgloss.NewStyle().
+	Border(lipgloss.DoubleBorder())
+
+var focusedBorderStyle = borderStyle.
+	BorderForeground(lipgloss.Color("205"))
+
+func withBorder(s string, focused bool) string {
+	if focused {
+		return focusedBorderStyle.Render(s)
+	}
+
+	return borderStyle.Render(s)
 }

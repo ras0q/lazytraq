@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
+	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
 type MainViewModel struct {
@@ -23,16 +24,19 @@ type MainViewModel struct {
 var _ tea.Model = (*MainViewModel)(nil)
 
 func New(w, h int, traqClient *traqapi.Client) *MainViewModel {
+	messagesListModel := list.New(
+		[]list.Item{},
+		list.NewDefaultDelegate(),
+		w,
+		h,
+	)
+	messagesListModel.DisableQuitKeybindings()
+
 	return &MainViewModel{
-		w:          w,
-		h:          h,
-		traqClient: traqClient,
-		messagesListModel: list.New(
-			[]list.Item{},
-			list.NewDefaultDelegate(),
-			w,
-			h,
-		),
+		w:                 w,
+		h:                 h,
+		traqClient:        traqClient,
+		messagesListModel: messagesListModel,
 	}
 }
 
@@ -49,17 +53,26 @@ func (m *MainViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		messages := msg.Response
 		slices.Reverse(messages)
 
-		itemsLen := len(m.messagesListModel.Items())
-		for i, message := range messages {
-			m.messagesListModel.InsertItem(itemsLen+i, traqapiext.MessageItem{
+		items := make([]list.Item, 0, len(messages))
+		for _, message := range messages {
+			items = append(items, traqapiext.MessageItem{
 				Message: message,
 			})
 		}
 
+		// TODO: cache previous items
+		m.messagesListModel.SetItems(items)
+		m.messagesListModel.Select(len(messages) - 1)
+
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "esc":
+			cmds = append(cmds, func() tea.Msg {
+				return shared.ReturnToSidebarMsg{}
+			})
+
 		case "r":
-			cmds = append(cmds, m.getMessagesCmd(ctx, uuid.MustParse("f58c72a4-14f0-423c-9259-dbb4a90ca35f")))
+			cmds = append(cmds, m.GetMessagesCmd(ctx, uuid.MustParse("f58c72a4-14f0-423c-9259-dbb4a90ca35f")))
 		}
 	}
 
@@ -73,13 +86,12 @@ func (m *MainViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *MainViewModel) View() string {
 	return lipgloss.NewStyle().
-		Width(m.w - 2).
-		Height(m.h - 2).
-		Border(lipgloss.DoubleBorder()).
+		Width(m.w).
+		Height(m.h).
 		Render(m.messagesListModel.View())
 }
 
-func (m *MainViewModel) getMessagesCmd(ctx context.Context, channelID uuid.UUID) tea.Cmd {
+func (m *MainViewModel) GetMessagesCmd(ctx context.Context, channelID uuid.UUID) tea.Cmd {
 	return func() tea.Msg {
 		res, err := m.traqClient.GetMessages(ctx, traqapi.GetMessagesParams{
 			ChannelId: channelID,

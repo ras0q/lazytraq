@@ -10,6 +10,7 @@ import (
 	"github.com/ras0q/bubbletree"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
+	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
 type ChannelTreeModel struct {
@@ -63,9 +64,7 @@ func (m *ChannelTreeModel) View() string {
 	return lipgloss.NewStyle().
 		Width(m.w).
 		Height(m.h).
-		Render(
-			m.treeModel.View(),
-		)
+		Render(m.treeModel.View())
 }
 
 func (m *ChannelTreeModel) getChannelsCmd(ctx context.Context) tea.Cmd {
@@ -136,6 +135,13 @@ func (m *ChannelTreeModel) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[
 				m.treeModel.SetTree(m.currentTree),
 				m.treeModel.SetFocusedID(focusedID),
 			)
+
+		case "enter":
+			cmd = func() tea.Msg {
+				return shared.OpenChannelMsg{
+					ID: focusedID,
+				}
+			}
 		}
 	}
 

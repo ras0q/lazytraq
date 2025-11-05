@@ -41,12 +41,5 @@ func (m *SidebarModel) View() string {
 	return lipgloss.NewStyle().
 		Width(m.w).
 		Height(m.h).
-		Render(
-			lipgloss.JoinVertical(
-				lipgloss.Left,
-				lipgloss.NewStyle().
-					Border(lipgloss.DoubleBorder()).
-					Render(m.channelTreeModel.View()),
-			),
-		)
+		Render(m.channelTreeModel.View())
 }
