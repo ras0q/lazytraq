@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/google/uuid"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
@@ -69,6 +70,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case shared.OpenChannelMsg:
 		channelID := msg.ID
+		if channelID == uuid.Nil {
+			break
+		}
+
 		m.focus = focusAreaContent
 		cmd := m.content.FetchMessagesCmd(context.Background(), channelID)
 		cmds = append(cmds, cmd)
