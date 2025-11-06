@@ -8,16 +8,14 @@ require (
 	github.com/go-faster/jx v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/ogen-go/ogen v1.16.0
+	github.com/ras0q/bubbletree v0.0.0-20251106135353-aa94a35144ad
 	github.com/traPtitech/go-traq-oauth2 v1.0.0
 	golang.org/x/oauth2 v0.32.0
-	golang.org/x/sync v0.17.0
 )
 
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/charmbracelet/bubbletea/v2 v2.0.0-beta1 // indirect
-	github.com/charmbracelet/x/input v0.3.7 // indirect
-	github.com/charmbracelet/x/windows v0.2.2 // indirect
+	github.com/charmbracelet/x/exp/golden v0.0.0-20241212170349-ad4b7ae0f25f // indirect
 	github.com/clipperhouse/displaywidth v0.4.1 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
@@ -28,7 +26,6 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/ras0q/bubbletree v0.0.0-20251104102523-5d24ec7fe34d // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
@@ -38,6 +35,7 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

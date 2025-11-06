@@ -33,6 +33,7 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 		treeModel:  bubbletree.New[uuid.UUID](w, h),
 	}
 	model.treeModel.OnUpdate = model.OnTreeUpdate
+	model.treeModel.SkipRoot = true
 
 	return model
 }
@@ -112,9 +113,6 @@ func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID],
 
 					parentNode.IsOpen.Store(false)
 					newFocusedID = parentID
-				} else {
-					// Fold root channel
-					m.currentTree.IsOpen.Store(false)
 				}
 			}
 
