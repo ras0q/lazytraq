@@ -30,7 +30,7 @@ var _ tea.Model = (*Model)(nil)
 func New(w, h int, traqClient *traqapi.Client) *Model {
 	messagesListModel := list.New(
 		[]list.Item{},
-		list.NewDefaultDelegate(),
+		newListDelegate(),
 		w,
 		h,
 	)

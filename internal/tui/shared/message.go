@@ -2,6 +2,7 @@ package shared
 
 import (
 	"github.com/google/uuid"
+	"github.com/ras0q/lazytraq/internal/traqapiext"
 )
 
 type (
@@ -12,4 +13,7 @@ type (
 	OpenChannelMsg struct {
 		ID uuid.UUID
 	}
+
+	PreviewMessageMsg         *traqapiext.MessageItem
+	PreviewMessageRenderedMsg string
 )

@@ -5,18 +5,20 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/google/uuid"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/content"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/preview"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 )
 
 type Model struct {
 	sidebar *sidebar.Model
 	content *content.Model
+	preview *preview.Model
 	ErrCh   chan error
 
 	focus focusArea
@@ -27,6 +29,7 @@ type focusArea int
 const (
 	focusAreaSidebar focusArea = iota
 	focusAreaContent
+	focusAreaPreview
 )
 
 func New(w, h int) (*Model, error) {
@@ -39,11 +42,14 @@ func New(w, h int) (*Model, error) {
 	}
 
 	sidebarWidth := int(float64(w) * 0.2)
-	contentWidth := w - sidebarWidth
+	contentWidth := int(float64(w) * 0.4)
+	previewWidth := w - sidebarWidth - contentWidth
+	borderPadding := 2
 
 	return &Model{
-		sidebar: sidebar.New(sidebarWidth, h, traqClient),
-		content: content.New(contentWidth, h, traqClient),
+		sidebar: sidebar.New(sidebarWidth-borderPadding, h, traqClient),
+		content: content.New(contentWidth-borderPadding, h, traqClient),
+		preview: preview.New(previewWidth-borderPadding, h),
 		ErrCh:   make(chan error),
 	}, nil
 }
@@ -54,6 +60,7 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.sidebar.Init(),
 		m.content.Init(),
+		m.preview.Init(),
 	)
 }
 
@@ -78,6 +85,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.content.FetchMessagesCmd(context.Background(), channelID)
 		cmds = append(cmds, cmd)
 
+	case shared.PreviewMessageMsg, shared.PreviewMessageRenderedMsg:
+		_preview, cmd := m.preview.Update(msg)
+		m.preview = _preview.(*preview.Model)
+		cmds = append(cmds, cmd)
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -95,6 +107,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_content, cmd := m.content.Update(msg)
 		m.content = _content.(*content.Model)
 		cmds = append(cmds, cmd)
+
+	case focusAreaPreview:
+		_preview, cmd := m.preview.Update(msg)
+		m.preview = _preview.(*preview.Model)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -105,6 +122,7 @@ func (m *Model) View() string {
 		lipgloss.Top,
 		withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
 		withBorder(m.content.View(), m.focus == focusAreaContent),
+		withBorder(m.preview.View(), m.focus == focusAreaPreview),
 	)
 }
 
