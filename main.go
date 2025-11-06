@@ -30,7 +30,7 @@ func runProgram() error {
 		return fmt.Errorf("create root model: %w", err)
 	}
 
-	p := tea.NewProgram(model)
+	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("run tea program: %w", err)
 	}
