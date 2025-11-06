@@ -30,7 +30,18 @@ func runProgram() error {
 		return fmt.Errorf("create root model: %w", err)
 	}
 
-	p := tea.NewProgram(model, tea.WithAltScreen())
+	go func() {
+		if err := <-model.ErrCh; err != nil {
+			log.Fatalf("application error: %v", err)
+		}
+	}()
+
+	opts := []tea.ProgramOption{}
+	if os.Getenv("DEBUG") == "" {
+		opts = append(opts, tea.WithAltScreen())
+	}
+
+	p := tea.NewProgram(model, opts...)
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("run tea program: %w", err)
 	}

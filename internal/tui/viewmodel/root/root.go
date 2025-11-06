@@ -3,6 +3,9 @@ package root
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -33,12 +36,19 @@ const (
 )
 
 func New(w, h int) (*Model, error) {
+	httpClient := http.DefaultClient
+	httpClient.Timeout = 10 * time.Second
 	traqClient, err := traqapi.NewClient(
 		"https://q.trap.jp/api/v3",
 		traqapiext.NewSecuritySource(),
+		traqapi.WithClient(httpClient),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create traq client: %w", err)
+	}
+
+	if os.Getenv("DEBUG") != "" {
+		h -= 2
 	}
 
 	sidebarWidth := int(float64(w) * 0.2)
@@ -50,7 +60,7 @@ func New(w, h int) (*Model, error) {
 		sidebar: sidebar.New(sidebarWidth-borderPadding, h, traqClient),
 		content: content.New(contentWidth-borderPadding, h, traqClient),
 		preview: preview.New(previewWidth-borderPadding, h),
-		ErrCh:   make(chan error),
+		ErrCh:   make(chan error, 1),
 	}, nil
 }
 
@@ -66,6 +76,13 @@ func (m *Model) Init() tea.Cmd {
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, 10)
+
+	if os.Getenv("DEBUG") != "" {
+		t := fmt.Sprintf("%T", msg)
+		if t != "tea.printLineMessage" {
+			cmds = append(cmds, tea.Printf("%s", t))
+		}
+	}
 
 	switch msg := msg.(type) {
 	case shared.ErrorMsg:
@@ -85,30 +102,38 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.content.FetchMessagesCmd(context.Background(), channelID)
 		cmds = append(cmds, cmd)
 
-	case shared.PreviewMessageMsg, shared.PreviewMessageRenderedMsg:
-		_preview, cmd := m.preview.Update(msg)
-		m.preview = _preview.(*preview.Model)
-		cmds = append(cmds, cmd)
-
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		}
-	}
+		default:
+			switch m.focus {
+			case focusAreaSidebar:
+				_sidebar, cmd := m.sidebar.Update(msg)
+				m.sidebar = _sidebar.(*sidebar.Model)
+				cmds = append(cmds, cmd)
 
-	switch m.focus {
-	case focusAreaSidebar:
+			case focusAreaContent:
+				_content, cmd := m.content.Update(msg)
+				m.content = _content.(*content.Model)
+				cmds = append(cmds, cmd)
+
+			case focusAreaPreview:
+				_preview, cmd := m.preview.Update(msg)
+				m.preview = _preview.(*preview.Model)
+				cmds = append(cmds, cmd)
+			}
+		}
+
+	default:
 		_sidebar, cmd := m.sidebar.Update(msg)
 		m.sidebar = _sidebar.(*sidebar.Model)
 		cmds = append(cmds, cmd)
 
-	case focusAreaContent:
 		_content, cmd := m.content.Update(msg)
 		m.content = _content.(*content.Model)
 		cmds = append(cmds, cmd)
 
-	case focusAreaPreview:
 		_preview, cmd := m.preview.Update(msg)
 		m.preview = _preview.(*preview.Model)
 		cmds = append(cmds, cmd)

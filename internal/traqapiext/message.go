@@ -1,6 +1,7 @@
 package traqapiext
 
 import (
+	"cmp"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -9,6 +10,7 @@ import (
 
 type MessageItem struct {
 	Message traqapi.Message
+	User    traqapi.User
 }
 
 var _ list.Item = MessageItem{}
@@ -18,7 +20,7 @@ var _ list.DefaultItem = MessageItem{}
 func (m MessageItem) FilterValue() string {
 	return fmt.Sprintf(
 		"@%s - %s",
-		m.Message.GetUserId(), // TODO: display username
+		cmp.Or(m.User.GetName(), "unknown"),
 		m.Message.GetContent(),
 	)
 }
@@ -30,5 +32,9 @@ func (m MessageItem) Description() string {
 
 // Title implements list.DefaultItem.
 func (m MessageItem) Title() string {
-	return m.Message.GetUserId().String() // TODO: display username
+	return fmt.Sprintf(
+		"%s @%s",
+		cmp.Or(m.User.GetDisplayName(), "Unknown"),
+		cmp.Or(m.User.GetName(), "unknown"),
+	)
 }
