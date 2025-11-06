@@ -38,6 +38,9 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 		h,
 	)
 	messagesListModel.DisableQuitKeybindings()
+	messagesListModel.SetShowTitle(false)
+	messagesListModel.SetShowHelp(false)
+	messagesListModel.SetShowPagination(false)
 
 	return &Model{
 		w:                 w,

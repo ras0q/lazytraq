@@ -33,7 +33,7 @@ func (m MessageItem) Description() string {
 // Title implements list.DefaultItem.
 func (m MessageItem) Title() string {
 	return fmt.Sprintf(
-		"%s @%s",
+		"%s - @%s",
 		cmp.Or(m.User.GetDisplayName(), "Unknown"),
 		cmp.Or(m.User.GetName(), "unknown"),
 	)
