@@ -4,40 +4,38 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/ras0q/lazytraq/internal/traqapi"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar/channeltree"
 )
 
-type SidebarModel struct {
+type Model struct {
 	w, h             int
-	channelTreeModel tea.Model
+	channelTreeModel *channeltree.Model
 }
 
-var _ tea.Model = (*SidebarModel)(nil)
+var _ tea.Model = (*Model)(nil)
 
-func New(w, h int, traqClient *traqapi.Client) *SidebarModel {
-	return &SidebarModel{
+func New(w, h int, traqClient *traqapi.Client) *Model {
+	return &Model{
 		w:                w,
 		h:                h,
-		channelTreeModel: NewChannelsModel(w-2, h-2, traqClient),
+		channelTreeModel: channeltree.New(w-2, h-2, traqClient),
 	}
 }
 
-func (m *SidebarModel) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.channelTreeModel.Init(),
 	)
 }
 
-func (m *SidebarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 0, 2)
-	var cmd tea.Cmd
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	_channelTreeModel, cmd := m.channelTreeModel.Update(msg)
+	m.channelTreeModel = _channelTreeModel.(*channeltree.Model)
 
-	m.channelTreeModel, cmd = m.channelTreeModel.Update(msg)
-	cmds = append(cmds, cmd)
-
-	return m, tea.Batch(cmds...)
+	return m, cmd
 }
 
-func (m *SidebarModel) View() string {
+func (m *Model) View() string {
 	return lipgloss.NewStyle().
 		Width(m.w).
 		Height(m.h).

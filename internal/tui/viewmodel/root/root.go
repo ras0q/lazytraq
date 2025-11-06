@@ -13,9 +13,9 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 )
 
-type rootModel struct {
-	sidebar tea.Model
-	content *content.MainViewModel
+type Model struct {
+	sidebar *sidebar.Model
+	content *content.Model
 	ErrCh   chan error
 
 	focus focusArea
@@ -28,7 +28,7 @@ const (
 	focusAreaContent
 )
 
-func New(w, h int) (*rootModel, error) {
+func New(w, h int) (*Model, error) {
 	traqClient, err := traqapi.NewClient(
 		"https://q.trap.jp/api/v3",
 		traqapiext.NewSecuritySource(),
@@ -40,25 +40,24 @@ func New(w, h int) (*rootModel, error) {
 	sidebarWidth := int(float64(w) * 0.3)
 	contentWidth := w - sidebarWidth
 
-	return &rootModel{
+	return &Model{
 		sidebar: sidebar.New(sidebarWidth, h, traqClient),
 		content: content.New(contentWidth, h, traqClient),
 		ErrCh:   make(chan error),
 	}, nil
 }
 
-var _ tea.Model = (*rootModel)(nil)
+var _ tea.Model = (*Model)(nil)
 
-func (m *rootModel) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.sidebar.Init(),
 		m.content.Init(),
 	)
 }
 
-func (m *rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, 10)
-	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case error:
@@ -77,25 +76,26 @@ func (m *rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shared.OpenChannelMsg:
 		channelID := msg.ID
 		m.focus = focusAreaContent
-		cmd = m.content.GetMessagesCmd(context.Background(), channelID)
+		cmd := m.content.GetMessagesCmd(context.Background(), channelID)
 		cmds = append(cmds, cmd)
 	}
 
 	switch m.focus {
 	case focusAreaSidebar:
-		m.sidebar, cmd = m.sidebar.Update(msg)
+		_sidebar, cmd := m.sidebar.Update(msg)
+		m.sidebar = _sidebar.(*sidebar.Model)
 		cmds = append(cmds, cmd)
 
 	case focusAreaContent:
 		_content, cmd := m.content.Update(msg)
-		m.content = _content.(*content.MainViewModel)
+		m.content = _content.(*content.Model)
 		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m *rootModel) View() string {
+func (m *Model) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),

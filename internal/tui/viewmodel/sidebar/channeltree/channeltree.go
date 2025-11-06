@@ -1,4 +1,4 @@
-package sidebar
+package channeltree
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
-type ChannelTreeModel struct {
+type Model struct {
 	w, h       int
 	traqClient *traqapi.Client
 	treeModel  bubbletree.Model[uuid.UUID]
@@ -21,8 +21,8 @@ type ChannelTreeModel struct {
 	currentTree *traqapiext.ChannelNode
 }
 
-func NewChannelsModel(w, h int, traqClient *traqapi.Client) *ChannelTreeModel {
-	model := &ChannelTreeModel{
+func New(w, h int, traqClient *traqapi.Client) *Model {
+	model := &Model{
 		w:          w,
 		h:          h,
 		traqClient: traqClient,
@@ -33,14 +33,14 @@ func NewChannelsModel(w, h int, traqClient *traqapi.Client) *ChannelTreeModel {
 	return model
 }
 
-var _ tea.Model = (*ChannelTreeModel)(nil)
+var _ tea.Model = (*Model)(nil)
 
-func (m *ChannelTreeModel) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	ctx := context.Background()
 	return m.getChannelsCmd(ctx)
 }
 
-func (m *ChannelTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, 2)
 
 	switch msg := msg.(type) {
@@ -60,14 +60,14 @@ func (m *ChannelTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m *ChannelTreeModel) View() string {
+func (m *Model) View() string {
 	return lipgloss.NewStyle().
 		Width(m.w).
 		Height(m.h).
 		Render(m.treeModel.View())
 }
 
-func (m *ChannelTreeModel) getChannelsCmd(ctx context.Context) tea.Cmd {
+func (m *Model) getChannelsCmd(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
 		channels, err := m.traqClient.GetChannels(ctx, traqapi.GetChannelsParams{})
 		if err != nil {
@@ -78,7 +78,7 @@ func (m *ChannelTreeModel) getChannelsCmd(ctx context.Context) tea.Cmd {
 	}
 }
 
-func (m *ChannelTreeModel) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID], focusedID uuid.UUID, msg tea.Msg) tea.Cmd {
+func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID], focusedID uuid.UUID, msg tea.Msg) tea.Cmd {
 	if m.currentTree == nil {
 		return nil
 	}

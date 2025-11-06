@@ -15,15 +15,15 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
-type MainViewModel struct {
+type Model struct {
 	w, h              int
 	traqClient        *traqapi.Client
 	messagesListModel list.Model
 }
 
-var _ tea.Model = (*MainViewModel)(nil)
+var _ tea.Model = (*Model)(nil)
 
-func New(w, h int, traqClient *traqapi.Client) *MainViewModel {
+func New(w, h int, traqClient *traqapi.Client) *Model {
 	messagesListModel := list.New(
 		[]list.Item{},
 		list.NewDefaultDelegate(),
@@ -32,7 +32,7 @@ func New(w, h int, traqClient *traqapi.Client) *MainViewModel {
 	)
 	messagesListModel.DisableQuitKeybindings()
 
-	return &MainViewModel{
+	return &Model{
 		w:                 w,
 		h:                 h,
 		traqClient:        traqClient,
@@ -40,11 +40,11 @@ func New(w, h int, traqClient *traqapi.Client) *MainViewModel {
 	}
 }
 
-func (m *MainViewModel) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m *MainViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	ctx := context.Background()
 	cmds := make([]tea.Cmd, 0, 10)
 
@@ -84,14 +84,14 @@ func (m *MainViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m *MainViewModel) View() string {
+func (m *Model) View() string {
 	return lipgloss.NewStyle().
 		Width(m.w).
 		Height(m.h).
 		Render(m.messagesListModel.View())
 }
 
-func (m *MainViewModel) GetMessagesCmd(ctx context.Context, channelID uuid.UUID) tea.Cmd {
+func (m *Model) GetMessagesCmd(ctx context.Context, channelID uuid.UUID) tea.Cmd {
 	return func() tea.Msg {
 		res, err := m.traqClient.GetMessages(ctx, traqapi.GetMessagesParams{
 			ChannelId: channelID,
