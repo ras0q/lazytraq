@@ -38,7 +38,7 @@ func New(w, h int) (*Model, error) {
 		return nil, fmt.Errorf("create traq client: %w", err)
 	}
 
-	sidebarWidth := int(float64(w) * 0.3)
+	sidebarWidth := int(float64(w) * 0.2)
 	contentWidth := w - sidebarWidth
 
 	return &Model{

@@ -33,6 +33,12 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 		treeModel:  bubbletree.New[uuid.UUID](w, h),
 	}
 	model.treeModel.OnUpdate = model.OnTreeUpdate
+	model.treeModel.Symbols = bubbletree.TreeSymbols{
+		BranchConnector: "├─ ",
+		LastConnector:   "└─ ",
+		IndentWithChild: "│  ",
+		IndentNoChild:   "   ",
+	}
 	model.treeModel.SkipRoot = true
 
 	return model
