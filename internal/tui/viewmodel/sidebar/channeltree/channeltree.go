@@ -13,6 +13,10 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
+type (
+	channelsFetchedMsg *traqapi.ChannelList
+)
+
 type Model struct {
 	w, h       int
 	traqClient *traqapi.Client
@@ -37,14 +41,14 @@ var _ tea.Model = (*Model)(nil)
 
 func (m *Model) Init() tea.Cmd {
 	ctx := context.Background()
-	return m.getChannelsCmd(ctx)
+	return m.fetchChannelsCmd(ctx)
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, 2)
 
 	switch msg := msg.(type) {
-	case *traqapi.ChannelList:
+	case channelsFetchedMsg:
 		publicChannels := msg.Public
 		tree := traqapiext.ConstructTree(publicChannels)
 		m.currentTree = tree
@@ -67,14 +71,14 @@ func (m *Model) View() string {
 		Render(m.treeModel.View())
 }
 
-func (m *Model) getChannelsCmd(ctx context.Context) tea.Cmd {
+func (m *Model) fetchChannelsCmd(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
 		channels, err := m.traqClient.GetChannels(ctx, traqapi.GetChannelsParams{})
 		if err != nil {
-			return fmt.Errorf("get channels from traQ: %w", err)
+			return shared.ErrorMsg(fmt.Errorf("get channels from traQ: %w", err))
 		}
 
-		return channels
+		return channelsFetchedMsg(channels)
 	}
 }
 

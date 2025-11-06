@@ -5,6 +5,8 @@ import (
 )
 
 type (
+	ErrorMsg error
+
 	ReturnToSidebarMsg struct{}
 
 	OpenChannelMsg struct {

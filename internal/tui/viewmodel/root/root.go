@@ -60,15 +60,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, 10)
 
 	switch msg := msg.(type) {
-	case error:
+	case shared.ErrorMsg:
 		m.ErrCh <- msg
 		return m, tea.Quit
-
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		}
 
 	case shared.ReturnToSidebarMsg:
 		m.focus = focusAreaSidebar
@@ -76,8 +70,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shared.OpenChannelMsg:
 		channelID := msg.ID
 		m.focus = focusAreaContent
-		cmd := m.content.GetMessagesCmd(context.Background(), channelID)
+		cmd := m.content.FetchMessagesCmd(context.Background(), channelID)
 		cmds = append(cmds, cmd)
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			return m, tea.Quit
+		}
 	}
 
 	switch m.focus {

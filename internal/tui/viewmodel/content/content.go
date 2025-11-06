@@ -15,6 +15,10 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
+type (
+	messagesFetchedMsg []traqapi.Message
+)
+
 type Model struct {
 	w, h              int
 	traqClient        *traqapi.Client
@@ -49,8 +53,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, 10)
 
 	switch msg := msg.(type) {
-	case *traqapi.GetMessagesOKHeaders:
-		messages := msg.Response
+	case messagesFetchedMsg:
+		messages := msg
 		slices.Reverse(messages)
 
 		items := make([]list.Item, 0, len(messages))
@@ -72,7 +76,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 
 		case "r":
-			cmds = append(cmds, m.GetMessagesCmd(ctx, uuid.MustParse("f58c72a4-14f0-423c-9259-dbb4a90ca35f")))
+			cmds = append(cmds, m.FetchMessagesCmd(ctx, uuid.MustParse("f58c72a4-14f0-423c-9259-dbb4a90ca35f")))
 		}
 	}
 
@@ -91,27 +95,27 @@ func (m *Model) View() string {
 		Render(m.messagesListModel.View())
 }
 
-func (m *Model) GetMessagesCmd(ctx context.Context, channelID uuid.UUID) tea.Cmd {
+func (m *Model) FetchMessagesCmd(ctx context.Context, channelID uuid.UUID) tea.Cmd {
 	return func() tea.Msg {
 		res, err := m.traqClient.GetMessages(ctx, traqapi.GetMessagesParams{
 			ChannelId: channelID,
 		})
 		if err != nil {
-			return fmt.Errorf("get messages from traQ: %w", err)
+			return shared.ErrorMsg(fmt.Errorf("get messages from traQ: %w", err))
 		}
 
 		switch res := res.(type) {
 		case *traqapi.GetMessagesOKHeaders:
-			return res
+			return messagesFetchedMsg(res.Response)
 
 		case *traqapi.GetMessagesBadRequest:
-			return errors.New("bad request")
+			return shared.ErrorMsg(errors.New("bad request"))
 
 		case *traqapi.GetMessagesNotFound:
-			return errors.New("not found")
+			return shared.ErrorMsg(errors.New("not found"))
 
 		default:
-			return fmt.Errorf("unreachable error")
+			return shared.ErrorMsg(fmt.Errorf("unreachable error"))
 		}
 	}
 }
