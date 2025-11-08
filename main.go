@@ -1,22 +1,30 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/ras0q/lazytraq/internal/auth"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/root"
 	"golang.org/x/term"
 )
 
 func main() {
-	if err := runProgram(); err != nil {
+	ctx := context.Background()
+	if err := runProgram(ctx); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 }
 
-func runProgram() error {
+func runProgram(ctx context.Context) error {
+	if err := loginToTraq(ctx); err != nil {
+		return fmt.Errorf("login: %w", err)
+	}
+
 	w, h, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		return fmt.Errorf("get terminal size: %w", err)
@@ -50,6 +58,42 @@ func runProgram() error {
 
 	if err := <-model.ErrCh; err != nil {
 		return fmt.Errorf("application error: %w", err)
+	}
+
+	return nil
+}
+
+func loginToTraq(ctx context.Context) error {
+	authURLCh := make(chan string, 1)
+	defer close(authURLCh)
+
+	go func() {
+		for authURL := range authURLCh {
+			fmt.Printf(
+				"Please open the following URL in your browser to authenticate:\n\n%s\n\n",
+				authURL,
+			)
+		}
+	}()
+
+	token, tokenStore, err := auth.GetToken(ctx, authURLCh)
+	if err != nil {
+		return fmt.Errorf("get token: %w", err)
+	}
+
+	if tokenStore == auth.TokenStoreFile {
+		slog.WarnContext(ctx, "got token from file, consider using keyring")
+	}
+
+	if tokenStore == auth.TokenStoreWeb {
+		tokenStore, err = auth.SetToken(token)
+		if err != nil {
+			return fmt.Errorf("set token: %w", err)
+		}
+
+		if tokenStore == auth.TokenStoreFile {
+			slog.WarnContext(ctx, "saved token to file, consider using keyring")
+		}
 	}
 
 	return nil
