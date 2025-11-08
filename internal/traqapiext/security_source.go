@@ -2,7 +2,6 @@ package traqapiext
 
 import (
 	"context"
-	"os"
 
 	"github.com/ogen-go/ogen/ogenerrors"
 	"github.com/ras0q/lazytraq/internal/traqapi"
@@ -15,12 +14,9 @@ type SecuritySource struct {
 
 var _ traqapi.SecuritySource = (*SecuritySource)(nil)
 
-func NewSecuritySource() *SecuritySource {
-	// TODO: save on the secret store
-	token, _ := os.ReadFile("tmp/.token")
-
+func NewSecuritySource(accessToken string) *SecuritySource {
 	return &SecuritySource{
-		AccessToken: string(token),
+		AccessToken: accessToken,
 	}
 }
 

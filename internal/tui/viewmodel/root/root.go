@@ -35,12 +35,12 @@ const (
 	focusAreaPreview
 )
 
-func New(w, h int) (*Model, error) {
+func New(w, h int, securitySource *traqapiext.SecuritySource) (*Model, error) {
 	httpClient := http.DefaultClient
 	httpClient.Timeout = 10 * time.Second
 	traqClient, err := traqapi.NewClient(
 		"https://q.trap.jp/api/v3",
-		traqapiext.NewSecuritySource(),
+		securitySource,
 		traqapi.WithClient(httpClient),
 	)
 	if err != nil {

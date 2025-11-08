@@ -9,6 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ras0q/lazytraq/internal/auth"
+	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/root"
 	"golang.org/x/term"
 )
@@ -21,7 +22,8 @@ func main() {
 }
 
 func runProgram(ctx context.Context) error {
-	if err := loginToTraq(ctx); err != nil {
+	securitySource, err := loginToTraq(ctx)
+	if err != nil {
 		return fmt.Errorf("login: %w", err)
 	}
 
@@ -33,7 +35,7 @@ func runProgram(ctx context.Context) error {
 	// NOTE: decrease padding
 	h = h - 2
 
-	model, err := root.New(w, h)
+	model, err := root.New(w, h, securitySource)
 	if err != nil {
 		return fmt.Errorf("create root model: %w", err)
 	}
@@ -63,7 +65,7 @@ func runProgram(ctx context.Context) error {
 	return nil
 }
 
-func loginToTraq(ctx context.Context) error {
+func loginToTraq(ctx context.Context) (*traqapiext.SecuritySource, error) {
 	authURLCh := make(chan string, 1)
 	defer close(authURLCh)
 
@@ -78,7 +80,7 @@ func loginToTraq(ctx context.Context) error {
 
 	token, tokenStore, err := auth.GetToken(ctx, authURLCh)
 	if err != nil {
-		return fmt.Errorf("get token: %w", err)
+		return nil, fmt.Errorf("get token: %w", err)
 	}
 
 	if tokenStore == auth.TokenStoreFile {
@@ -88,7 +90,7 @@ func loginToTraq(ctx context.Context) error {
 	if tokenStore == auth.TokenStoreWeb {
 		tokenStore, err = auth.SetToken(token)
 		if err != nil {
-			return fmt.Errorf("set token: %w", err)
+			return nil, fmt.Errorf("set token: %w", err)
 		}
 
 		if tokenStore == auth.TokenStoreFile {
@@ -96,5 +98,5 @@ func loginToTraq(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	return traqapiext.NewSecuritySource(token.AccessToken), nil
 }
