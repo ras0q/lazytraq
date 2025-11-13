@@ -8,7 +8,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
@@ -18,6 +18,7 @@ import (
 type (
 	messagesFetchedMsg []traqapi.Message
 	usersFetchedMsg    map[uuid.UUID]traqapi.User
+	stampsFetchedMsg   map[uuid.UUID]traqapi.StampWithThumbnail
 )
 
 type Model struct {
@@ -25,7 +26,8 @@ type Model struct {
 	traqClient        *traqapi.Client
 	messagesListModel list.Model
 
-	users map[uuid.UUID]traqapi.User
+	users  map[uuid.UUID]traqapi.User
+	stamps map[uuid.UUID]traqapi.StampWithThumbnail
 }
 
 var _ tea.Model = (*Model)(nil)
@@ -51,7 +53,12 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 }
 
 func (m *Model) Init() tea.Cmd {
-	return m.fetchUsersCmd(context.Background())
+	ctx := context.Background()
+
+	return tea.Batch(
+		m.fetchUsersCmd(ctx),
+		m.fetchStampsCmd(ctx),
+	)
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -78,6 +85,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case usersFetchedMsg:
 		m.users = msg
+
+	case stampsFetchedMsg:
+		m.stamps = msg
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -153,5 +163,23 @@ func (m *Model) fetchUsersCmd(ctx context.Context) tea.Cmd {
 		default:
 			return shared.ErrorMsg(fmt.Errorf("unreachable error"))
 		}
+	}
+}
+
+func (m *Model) fetchStampsCmd(ctx context.Context) tea.Cmd {
+	return func() tea.Msg {
+		stamps, err := m.traqClient.GetStamps(ctx, traqapi.GetStampsParams{
+			IncludeUnicode: traqapi.NewOptBool(true),
+		})
+		if err != nil {
+			return shared.ErrorMsg(fmt.Errorf("get stamps from traQ: %w", err))
+		}
+
+		stampMap := make(map[uuid.UUID]traqapi.StampWithThumbnail)
+		for _, stamp := range stamps {
+			stampMap[stamp.ID] = stamp
+		}
+
+		return stampsFetchedMsg(stampMap)
 	}
 }

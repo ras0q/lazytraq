@@ -15,5 +15,9 @@ type (
 	}
 
 	PreviewMessageMsg         *traqapiext.MessageItem
-	PreviewMessageRenderedMsg string
+	PreviewMessageRenderedMsg struct {
+		MessageID       uuid.UUID
+		RenderedContent string
+		RenderedStamps  string
+	}
 )

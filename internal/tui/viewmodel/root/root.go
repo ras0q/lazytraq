@@ -8,7 +8,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
@@ -59,7 +59,7 @@ func New(w, h int, securitySource *traqapiext.SecuritySource) (*Model, error) {
 	return &Model{
 		sidebar: sidebar.New(sidebarWidth-borderPadding, h, traqClient),
 		content: content.New(contentWidth-borderPadding, h, traqClient),
-		preview: preview.New(previewWidth-borderPadding, h),
+		preview: preview.New(previewWidth-borderPadding, h, traqClient),
 		ErrCh:   make(chan error, 1),
 	}, nil
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
 	"github.com/ras0q/bubbletree"
 	"github.com/ras0q/lazytraq/internal/traqapi"
