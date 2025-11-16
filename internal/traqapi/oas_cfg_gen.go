@@ -10,13 +10,14 @@ import (
 )
 
 var regexMap = map[string]ogenregex.Regexp{
-	"^(\\/[a-zA-Z0-9-_]+)+$": ogenregex.MustCompile("^(\\/[a-zA-Z0-9-_]+)+$"),
-	"^[\\x20-\\x7E]{10,32}$": ogenregex.MustCompile("^[\\x20-\\x7E]{10,32}$"),
-	"^[a-zA-Z0-9-_]{1,20}$":  ogenregex.MustCompile("^[a-zA-Z0-9-_]{1,20}$"),
-	"^[a-zA-Z0-9_-]{1,16}$":  ogenregex.MustCompile("^[a-zA-Z0-9_-]{1,16}$"),
-	"^[a-zA-Z0-9_-]{1,32}$":  ogenregex.MustCompile("^[a-zA-Z0-9_-]{1,32}$"),
-	"^[a-zA-Z0-9_]{0,15}$":   ogenregex.MustCompile("^[a-zA-Z0-9_]{0,15}$"),
-	"^[a-zA-Z0-9_]{1,15}$":   ogenregex.MustCompile("^[a-zA-Z0-9_]{1,15}$"),
+	"^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$": ogenregex.MustCompile("^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$"),
+	"^(\\/[a-zA-Z0-9-_]+)+$":                            ogenregex.MustCompile("^(\\/[a-zA-Z0-9-_]+)+$"),
+	"^[\\x20-\\x7E]{10,32}$":                            ogenregex.MustCompile("^[\\x20-\\x7E]{10,32}$"),
+	"^[a-zA-Z0-9-_]{1,20}$":                             ogenregex.MustCompile("^[a-zA-Z0-9-_]{1,20}$"),
+	"^[a-zA-Z0-9_-]{1,16}$":                             ogenregex.MustCompile("^[a-zA-Z0-9_-]{1,16}$"),
+	"^[a-zA-Z0-9_-]{1,32}$":                             ogenregex.MustCompile("^[a-zA-Z0-9_-]{1,32}$"),
+	"^[a-zA-Z0-9_]{0,15}$":                              ogenregex.MustCompile("^[a-zA-Z0-9_]{0,15}$"),
+	"^[a-zA-Z0-9_]{1,15}$":                              ogenregex.MustCompile("^[a-zA-Z0-9_]{1,15}$"),
 }
 
 type (

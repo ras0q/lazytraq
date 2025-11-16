@@ -1143,7 +1143,7 @@ func (s *MyUserDetail) Validate() error {
 			MaxLengthSet: false,
 			Email:        false,
 			Hostname:     false,
-			Regex:        regexMap["^[a-zA-Z0-9_-]{1,32}$"],
+			Regex:        regexMap["^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$"],
 		}).Validate(string(s.Name)); err != nil {
 			return errors.Wrap(err, "string")
 		}
@@ -1605,7 +1605,7 @@ func (s *OIDCUserInfo) Validate() error {
 			MaxLengthSet: false,
 			Email:        false,
 			Hostname:     false,
-			Regex:        regexMap["^[a-zA-Z0-9_-]{1,32}$"],
+			Regex:        regexMap["^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$"],
 		}).Validate(string(s.Name)); err != nil {
 			return errors.Wrap(err, "string")
 		}
@@ -1624,7 +1624,7 @@ func (s *OIDCUserInfo) Validate() error {
 			MaxLengthSet: false,
 			Email:        false,
 			Hostname:     false,
-			Regex:        regexMap["^[a-zA-Z0-9_-]{1,32}$"],
+			Regex:        regexMap["^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$"],
 		}).Validate(string(s.PreferredUsername)); err != nil {
 			return errors.Wrap(err, "string")
 		}
@@ -2709,7 +2709,7 @@ func (s *PostLoginRequest) Validate() error {
 			MaxLengthSet: false,
 			Email:        false,
 			Hostname:     false,
-			Regex:        regexMap["^[a-zA-Z0-9_-]{1,32}$"],
+			Regex:        regexMap["^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$"],
 		}).Validate(string(s.Name)); err != nil {
 			return errors.Wrap(err, "string")
 		}
@@ -3610,7 +3610,7 @@ func (s *User) Validate() error {
 			MaxLengthSet: false,
 			Email:        false,
 			Hostname:     false,
-			Regex:        regexMap["^[a-zA-Z0-9_-]{1,32}$"],
+			Regex:        regexMap["^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$"],
 		}).Validate(string(s.Name)); err != nil {
 			return errors.Wrap(err, "string")
 		}
@@ -3714,7 +3714,7 @@ func (s *UserDetail) Validate() error {
 			MaxLengthSet: false,
 			Email:        false,
 			Hostname:     false,
-			Regex:        regexMap["^[a-zA-Z0-9_-]{1,32}$"],
+			Regex:        regexMap["^([a-zA-Z0-9_-]{1,32}|Webhook#[a-zA-Z0-9_-]{22})$"],
 		}).Validate(string(s.Name)); err != nil {
 			return errors.Wrap(err, "string")
 		}
