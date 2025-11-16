@@ -8,7 +8,6 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -125,13 +124,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case shared.PreviewMessageRenderedMsg:
+		time.Sleep(100 * time.Millisecond) // for smooth rendering
 		m.viewport.SetContent(msg.RenderedContent)
-		m.renderedStamps = fmt.Sprintf("\033[s\n\n%s\033[u", msg.RenderedStamps)
+		m.renderedStamps = renderSixelImage(msg.RenderedStamps, 2, m.w)
 
 	case shared.PreviewMessageMsg:
 		m.message = msg
-		m.viewport.SetContent(strings.Repeat(strings.Repeat(" ", m.w)+"\n", 3))
-		m.renderedStamps = strings.Repeat(" ", m.w)
+		m.viewport.SetContent("")
+		m.renderedStamps = ""
 		cmds = append(cmds, m.renderMessageCmd(msg))
 
 	case tea.KeyMsg:
@@ -233,4 +233,25 @@ func (m *Model) renderMessageCmd(message *traqapiext.MessageItem) tea.Cmd {
 			RenderedStamps:  renderedStamps,
 		}
 	}
+}
+
+func renderSixelImage(seq string, h, w int) string {
+	var buf bytes.Buffer
+	// Overwrite the target area with a visible glyph (full block '█') to
+	// cover any sixel image previously rendered. Many terminals composite
+	// sixel graphics behind the text layer, so printing plain spaces may
+	// not visually hide the image. Writing a visible character ensures the
+	// text layer replaces the image and prevents burn-in.
+	for i := 0; i < h; i++ {
+		for j := 0; j < w; j++ {
+			buf.WriteRune('█')
+		}
+		buf.WriteByte('\n')
+	}
+
+	buf.WriteString(ansi.CursorUp(h))
+	buf.WriteString(seq)
+	buf.WriteString(ansi.CursorUp(h))
+
+	return buf.String()
 }
