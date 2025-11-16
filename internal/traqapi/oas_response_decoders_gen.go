@@ -4411,6 +4411,15 @@ func decodeGetStampImageResponse(resp *http.Response) (res GetStampImageRes, _ e
 
 			response := GetStampImageOKImagePNG{Data: bytes.NewReader(b)}
 			return &response, nil
+		case ct == "image/svg+xml":
+			reader := resp.Body
+			b, err := io.ReadAll(reader)
+			if err != nil {
+				return res, err
+			}
+
+			response := GetStampImageOKImageSvgXML{Data: bytes.NewReader(b)}
+			return &response, nil
 		default:
 			return res, validate.InvalidContentType(ct)
 		}
@@ -4747,6 +4756,15 @@ func decodeGetThumbnailImageResponse(resp *http.Response) (res GetThumbnailImage
 			}
 
 			response := GetThumbnailImageOKImagePNG{Data: bytes.NewReader(b)}
+			return &response, nil
+		case ct == "image/svg+xml":
+			reader := resp.Body
+			b, err := io.ReadAll(reader)
+			if err != nil {
+				return res, err
+			}
+
+			response := GetThumbnailImageOKImageSvgXML{Data: bytes.NewReader(b)}
 			return &response, nil
 		default:
 			return res, validate.InvalidContentType(ct)

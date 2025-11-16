@@ -8,7 +8,6 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"io"
 	"strings"
 	"time"
 
@@ -23,6 +22,8 @@ import (
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
+	"github.com/tdewolff/canvas"
+	"github.com/tdewolff/canvas/renderers/rasterizer"
 	"golang.org/x/image/draw"
 	"golang.org/x/sync/errgroup"
 )
@@ -65,21 +66,36 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 			return nil, fmt.Errorf("get stamp image from traQ: %w", err)
 		}
 
-		var r io.Reader
+		var img image.Image
 		switch res := res.(type) {
 		case *traqapi.GetStampImageNotFound:
 			return nil, fmt.Errorf("stamp nof found: %w", err)
-		case *traqapi.GetStampImageOKImageGIF:
-			r = res.Data
-		case *traqapi.GetStampImageOKImageJpeg:
-			r = res.Data
-		case *traqapi.GetStampImageOKImagePNG:
-			r = res.Data
-		}
 
-		img, _, err := image.Decode(r)
-		if err != nil {
-			return nil, fmt.Errorf("decode file to image: %w", err)
+		case *traqapi.GetStampImageOKImageGIF:
+			img, _, err = image.Decode(res.Data)
+			if err != nil {
+				return nil, fmt.Errorf("decode file to image: %w", err)
+			}
+
+		case *traqapi.GetStampImageOKImageJpeg:
+			img, _, err = image.Decode(res.Data)
+			if err != nil {
+				return nil, fmt.Errorf("decode file to image: %w", err)
+			}
+
+		case *traqapi.GetStampImageOKImagePNG:
+			img, _, err = image.Decode(res.Data)
+			if err != nil {
+				return nil, fmt.Errorf("decode file to image: %w", err)
+			}
+
+		case *traqapi.GetStampImageOKImageSvgXML:
+			c, err := canvas.ParseSVG(res.Data)
+			if err != nil {
+				return nil, fmt.Errorf("parse svg: %w", err)
+			}
+
+			img = rasterizer.Draw(c, 96.0, canvas.DefaultColorSpace)
 		}
 
 		resizedImg := image.NewRGBA(image.Rect(0, 0, 32, 32))

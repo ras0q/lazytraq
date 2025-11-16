@@ -3071,6 +3071,22 @@ func (s GetStampImageOKImagePNG) Read(p []byte) (n int, err error) {
 
 func (*GetStampImageOKImagePNG) getStampImageRes() {}
 
+type GetStampImageOKImageSvgXML struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetStampImageOKImageSvgXML) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+func (*GetStampImageOKImageSvgXML) getStampImageRes() {}
+
 // GetStampNotFound is response for GetStamp operation.
 type GetStampNotFound struct{}
 
@@ -3173,6 +3189,22 @@ func (s GetThumbnailImageOKImagePNG) Read(p []byte) (n int, err error) {
 }
 
 func (*GetThumbnailImageOKImagePNG) getThumbnailImageRes() {}
+
+type GetThumbnailImageOKImageSvgXML struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetThumbnailImageOKImageSvgXML) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+func (*GetThumbnailImageOKImageSvgXML) getThumbnailImageRes() {}
 
 // GetUserDMChannelNotFound is response for GetUserDMChannel operation.
 type GetUserDMChannelNotFound struct{}
