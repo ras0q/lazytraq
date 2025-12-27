@@ -242,8 +242,8 @@ func renderSixelImage(seq string, h, w int) string {
 	// sixel graphics behind the text layer, so printing plain spaces may
 	// not visually hide the image. Writing a visible character ensures the
 	// text layer replaces the image and prevents burn-in.
-	for i := 0; i < h; i++ {
-		for j := 0; j < w; j++ {
+	for range h {
+		for range w {
 			buf.WriteRune('█')
 		}
 		buf.WriteByte('\n')
