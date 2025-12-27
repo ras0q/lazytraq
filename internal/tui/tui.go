@@ -1,4 +1,4 @@
-package root
+package tui
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 )
 
-type Model struct {
+type AppModel struct {
 	sidebar *sidebar.Model
 	content *content.Model
 	preview *preview.Model
@@ -35,7 +35,7 @@ const (
 	focusAreaPreview
 )
 
-func New(w, h int, securitySource *traqapiext.SecuritySource) (*Model, error) {
+func NewAppModel(w, h int, securitySource *traqapiext.SecuritySource) (*AppModel, error) {
 	httpClient := http.DefaultClient
 	httpClient.Timeout = 10 * time.Second
 	traqClient, err := traqapi.NewClient(
@@ -56,7 +56,7 @@ func New(w, h int, securitySource *traqapiext.SecuritySource) (*Model, error) {
 	previewWidth := w - sidebarWidth - contentWidth
 	borderPadding := 2
 
-	return &Model{
+	return &AppModel{
 		sidebar: sidebar.New(sidebarWidth-borderPadding, h, traqClient),
 		content: content.New(contentWidth-borderPadding, h, traqClient),
 		preview: preview.New(previewWidth-borderPadding, h, traqClient),
@@ -64,9 +64,9 @@ func New(w, h int, securitySource *traqapiext.SecuritySource) (*Model, error) {
 	}, nil
 }
 
-var _ tea.Model = (*Model)(nil)
+var _ tea.Model = (*AppModel)(nil)
 
-func (m *Model) Init() tea.Cmd {
+func (m *AppModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.sidebar.Init(),
 		m.content.Init(),
@@ -74,7 +74,7 @@ func (m *Model) Init() tea.Cmd {
 	)
 }
 
-func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0, 10)
 
 	if os.Getenv("DEBUG") != "" {
@@ -142,7 +142,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m *Model) View() string {
+func (m *AppModel) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),

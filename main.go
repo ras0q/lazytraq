@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ras0q/lazytraq/internal/auth"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
-	"github.com/ras0q/lazytraq/internal/tui/viewmodel/root"
+	"github.com/ras0q/lazytraq/internal/tui"
 	"golang.org/x/term"
 )
 
@@ -35,7 +35,7 @@ func runProgram(ctx context.Context) error {
 	// NOTE: decrease padding
 	h = h - 2
 
-	model, err := root.New(w, h, securitySource)
+	model, err := tui.NewAppModel(w, h, securitySource)
 	if err != nil {
 		return fmt.Errorf("create root model: %w", err)
 	}
