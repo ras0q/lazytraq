@@ -17,9 +17,10 @@ import (
 )
 
 var (
+	endpoint     = traqoauth2.Staging
 	oauth2Config = oauth2.Config{
-		ClientID:    "QAQIPJ7xA8ZTnK5qP0uxhleF0xasudkazUJ2",
-		Endpoint:    traqoauth2.Prod,
+		ClientID:    "E4d5xiUOC0I803NjujtuDOQKBHN4b2GWj4oo",
+		Endpoint:    endpoint,
 		RedirectURL: "http://localhost:8080",
 		Scopes: []string{
 			traqoauth2.ScopeRead,
@@ -32,7 +33,7 @@ var (
 	ltHostFile   = "hosts.json"
 
 	// TODO: make host customizable
-	authUrl, _ = url.Parse(traqoauth2.Prod.AuthURL)
+	authUrl, _ = url.Parse(endpoint.AuthURL)
 	apiHost    = authUrl.Host
 
 	keyringService = fmt.Sprintf("lazytraq-%s", apiHost)

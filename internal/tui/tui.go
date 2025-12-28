@@ -39,7 +39,7 @@ func NewAppModel(w, h int, securitySource *traqapiext.SecuritySource) (*AppModel
 	httpClient := http.DefaultClient
 	httpClient.Timeout = 10 * time.Second
 	traqClient, err := traqapi.NewClient(
-		"https://q.trap.jp/api/v3",
+		"https://q-dev.trapti.tech/api/v3",
 		securitySource,
 		traqapi.WithClient(httpClient),
 	)
