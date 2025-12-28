@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 
@@ -17,27 +16,11 @@ import (
 )
 
 var (
-	endpoint     = traqoauth2.Staging
-	oauth2Config = oauth2.Config{
-		ClientID:    "E4d5xiUOC0I803NjujtuDOQKBHN4b2GWj4oo",
-		Endpoint:    endpoint,
-		RedirectURL: "http://localhost:8080",
-		Scopes: []string{
-			traqoauth2.ScopeRead,
-			traqoauth2.ScopeWrite,
-		},
-	}
-
 	configDir, _ = os.UserConfigDir()
 	ltConfigDir  = filepath.Join(configDir, "lazytraq")
 	ltHostFile   = "hosts.json"
 
-	// TODO: make host customizable
-	authUrl, _ = url.Parse(endpoint.AuthURL)
-	apiHost    = authUrl.Host
-
-	keyringService = fmt.Sprintf("lazytraq-%s", apiHost)
-	keyringUser    = "lazytraq-user"
+	keyringUser = "lazytraq-user"
 
 	errTokenNotFound = errors.New("token not found")
 )
@@ -51,8 +34,8 @@ const (
 	TokenStoreWeb
 )
 
-func GetToken(ctx context.Context, authURLCh chan<- string) (*oauth2.Token, TokenStore, error) {
-	token, err := getTokenFromKeyring(keyringService, keyringUser)
+func GetToken(ctx context.Context, apiHost string, authURLCh chan<- string) (*oauth2.Token, TokenStore, error) {
+	token, err := getTokenFromKeyring(keyringService(apiHost), keyringUser)
 	if err == nil {
 		return token, TokenStoreKeyring, nil
 	}
@@ -63,7 +46,7 @@ func GetToken(ctx context.Context, authURLCh chan<- string) (*oauth2.Token, Toke
 	}
 
 	if errors.Is(err, errTokenNotFound) {
-		token, err := getTokenFromWeb(ctx, authURLCh)
+		token, err := getTokenFromWeb(ctx, apiHost, authURLCh)
 		if err == nil {
 			return token, TokenStoreWeb, nil
 		}
@@ -114,10 +97,25 @@ func getTokenFromFile(host string) (*oauth2.Token, error) {
 	}, nil
 }
 
-func getTokenFromWeb(ctx context.Context, authURLCh chan<- string) (*oauth2.Token, error) {
+func getTokenFromWeb(ctx context.Context, apiHost string, authURLCh chan<- string) (*oauth2.Token, error) {
 	state := "state" // TODO: generate random state
 
+	endpoint, err := traqoauth2.New(fmt.Sprintf("https://%s/api/v3", apiHost))
+	if err != nil {
+		return nil, fmt.Errorf("create oauth2 endpoint: %w", err)
+	}
+
+	oauth2Config := oauth2.Config{
+		ClientID:    "E4d5xiUOC0I803NjujtuDOQKBHN4b2GWj4oo",
+		Endpoint:    endpoint,
+		RedirectURL: "http://localhost:8080",
+		Scopes: []string{
+			traqoauth2.ScopeRead,
+			traqoauth2.ScopeWrite,
+		},
+	}
 	authURL := oauth2Config.AuthCodeURL(state)
+
 	// _, _ = w.Write([]byte(authURL))
 	authURLCh <- authURL
 
@@ -155,12 +153,12 @@ func startCallbackServer(addr string) (chan string, error) {
 	return codeCh, nil
 }
 
-func SetToken(token *oauth2.Token) (TokenStore, error) {
+func SetToken(apiHost string, token *oauth2.Token) (TokenStore, error) {
 	if token == nil {
 		return TokenStoreUnknown, fmt.Errorf("token is nil")
 	}
 
-	keyringErr := setTokenToKeyring(keyringService, keyringUser, token.AccessToken)
+	keyringErr := setTokenToKeyring(keyringService(apiHost), keyringUser, token.AccessToken)
 	if keyringErr == nil {
 		return TokenStoreKeyring, nil
 	}
@@ -214,4 +212,8 @@ func setTokenToFile(host, token string) error {
 	}
 
 	return nil
+}
+
+func keyringService(apiHost string) string {
+	return fmt.Sprintf("lazytraq-%s", apiHost)
 }

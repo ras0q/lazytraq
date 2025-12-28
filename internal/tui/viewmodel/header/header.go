@@ -6,13 +6,15 @@ import (
 )
 
 type Model struct {
-	w, h int
+	w, h    int
+	apiHost string
 }
 
-func New(w, h int) *Model {
+func New(w, h int, apiHost string) *Model {
 	return &Model{
-		w: w,
-		h: h,
+		w:       w,
+		h:       h,
+		apiHost: apiHost,
 	}
 }
 
@@ -24,11 +26,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+var titleStyle = lipgloss.NewStyle().
+	Bold(true).
+	Italic(true)
+
 func (m *Model) View() string {
-	return lipgloss.NewStyle().
-		Width(m.w).
-		Height(m.h).
-		Bold(true).
-		Italic(true).
-		Render("lazytraq")
+	return lipgloss.NewStyle().Height(m.h).Width(m.w).Render(
+		lipgloss.JoinHorizontal(
+			lipgloss.Center,
+			titleStyle.Render("lazytraq"),
+			" in ",
+			lipgloss.NewStyle().Bold(true).Render(m.apiHost),
+		),
+	)
 }

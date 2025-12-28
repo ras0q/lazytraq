@@ -42,11 +42,11 @@ const (
 	focusAreaPreview
 )
 
-func NewAppModel(w, h int, securitySource *traqapiext.SecuritySource) (*AppModel, error) {
+func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySource) (*AppModel, error) {
 	httpClient := http.DefaultClient
 	httpClient.Timeout = 10 * time.Second
 	traqClient, err := traqapi.NewClient(
-		"https://q-dev.trapti.tech/api/v3",
+		fmt.Sprintf("https://%s/api/v3", apiHost),
 		securitySource,
 		traqapi.WithClient(httpClient),
 	)
@@ -75,6 +75,7 @@ func NewAppModel(w, h int, securitySource *traqapiext.SecuritySource) (*AppModel
 		header: header.New(
 			headerWidth-bp,
 			headerHeight-bp,
+			apiHost,
 		),
 		sidebar: sidebar.New(
 			sidebarWidth-bp,

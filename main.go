@@ -22,7 +22,8 @@ func main() {
 }
 
 func runProgram(ctx context.Context) error {
-	securitySource, err := loginToTraq(ctx)
+	apiHost := "q-dev.trapti.tech"
+	securitySource, err := loginToTraq(ctx, apiHost)
 	if err != nil {
 		return fmt.Errorf("login: %w", err)
 	}
@@ -35,7 +36,7 @@ func runProgram(ctx context.Context) error {
 	// NOTE: decrease padding
 	h = h - 2
 
-	model, err := tui.NewAppModel(w, h, securitySource)
+	model, err := tui.NewAppModel(w, h, apiHost, securitySource)
 	if err != nil {
 		return fmt.Errorf("create root model: %w", err)
 	}
@@ -65,7 +66,7 @@ func runProgram(ctx context.Context) error {
 	return nil
 }
 
-func loginToTraq(ctx context.Context) (*traqapiext.SecuritySource, error) {
+func loginToTraq(ctx context.Context, apiHost string) (*traqapiext.SecuritySource, error) {
 	authURLCh := make(chan string, 1)
 	defer close(authURLCh)
 
@@ -78,7 +79,7 @@ func loginToTraq(ctx context.Context) (*traqapiext.SecuritySource, error) {
 		}
 	}()
 
-	token, tokenStore, err := auth.GetToken(ctx, authURLCh)
+	token, tokenStore, err := auth.GetToken(ctx, apiHost, authURLCh)
 	if err != nil {
 		return nil, fmt.Errorf("get token: %w", err)
 	}
@@ -88,7 +89,7 @@ func loginToTraq(ctx context.Context) (*traqapiext.SecuritySource, error) {
 	}
 
 	if tokenStore == auth.TokenStoreWeb {
-		tokenStore, err = auth.SetToken(token)
+		tokenStore, err = auth.SetToken(apiHost, token)
 		if err != nil {
 			return nil, fmt.Errorf("set token: %w", err)
 		}
