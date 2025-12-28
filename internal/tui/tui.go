@@ -14,17 +14,20 @@ import (
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/content"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/messageinput"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/preview"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 )
 
 type AppModel struct {
-	sidebar *sidebar.Model
-	content *content.Model
-	preview *preview.Model
-	ErrCh   chan error
+	sidebar      *sidebar.Model
+	content      *content.Model
+	messageInput *messageinput.Model
+	preview      *preview.Model
+	ErrCh        chan error
 
-	focus focusArea
+	focus     focusArea
+	channelID uuid.UUID
 }
 
 type focusArea int
@@ -32,6 +35,7 @@ type focusArea int
 const (
 	focusAreaSidebar focusArea = iota
 	focusAreaContent
+	focusAreaMessageInput
 	focusAreaPreview
 )
 
@@ -52,15 +56,37 @@ func NewAppModel(w, h int, securitySource *traqapiext.SecuritySource) (*AppModel
 	}
 
 	sidebarWidth := int(float64(w) * 0.2)
+	sidebarHeight := h
 	contentWidth := int(float64(w) * 0.4)
+	contentHeight := int(float64(h) * 0.7)
+	messageInputWidth := contentWidth
+	messageInputHeight := h - contentHeight
 	previewWidth := w - sidebarWidth - contentWidth
-	borderPadding := 2
+	previewHeight := h
+	bp := 2
 
 	return &AppModel{
-		sidebar: sidebar.New(sidebarWidth-borderPadding, h, traqClient),
-		content: content.New(contentWidth-borderPadding, h, traqClient),
-		preview: preview.New(previewWidth-borderPadding, h, traqClient),
-		ErrCh:   make(chan error, 1),
+		sidebar: sidebar.New(
+			sidebarWidth-bp,
+			sidebarHeight-bp,
+			traqClient,
+		),
+		content: content.New(
+			contentWidth-bp,
+			contentHeight-bp,
+			traqClient,
+		),
+		messageInput: messageinput.New(
+			messageInputWidth-bp,
+			messageInputHeight-bp,
+			traqClient,
+		),
+		preview: preview.New(
+			previewWidth-bp,
+			previewHeight-bp,
+			traqClient,
+		),
+		ErrCh: make(chan error, 1),
 	}, nil
 }
 
@@ -70,6 +96,7 @@ func (m *AppModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.sidebar.Init(),
 		m.content.Init(),
+		m.messageInput.Init(),
 		m.preview.Init(),
 	)
 }
@@ -79,6 +106,9 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if os.Getenv("DEBUG") != "" {
 		t := fmt.Sprintf("%T", msg)
+		if msg, ok := msg.(fmt.Stringer); ok {
+			t = fmt.Sprintf("%s (%s)", t, msg.String())
+		}
 		if t != "tea.printLineMessage" {
 			cmds = append(cmds, tea.Printf("%s", t))
 		}
@@ -99,13 +129,31 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.focus = focusAreaContent
+		m.channelID = channelID
+
 		cmd := m.content.FetchMessagesCmd(context.Background(), channelID)
+		cmds = append(cmds, cmd)
+
+	case shared.MessageSentMsg:
+		if m.channelID == uuid.Nil {
+			break
+		}
+
+		cmd := m.content.FetchMessagesCmd(context.Background(), m.channelID)
 		cmds = append(cmds, cmd)
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "n":
+			m.focus = focusAreaMessageInput
+			cmds = append(cmds, func() tea.Msg {
+				return shared.FocusMessageInputMsg{
+					ChannelID: m.channelID,
+				}
+			})
+
 		default:
 			switch m.focus {
 			case focusAreaSidebar:
@@ -116,6 +164,11 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case focusAreaContent:
 				_content, cmd := m.content.Update(msg)
 				m.content = _content.(*content.Model)
+				cmds = append(cmds, cmd)
+
+			case focusAreaMessageInput:
+				_messageInput, cmd := m.messageInput.Update(msg)
+				m.messageInput = _messageInput.(*messageinput.Model)
 				cmds = append(cmds, cmd)
 
 			case focusAreaPreview:
@@ -134,6 +187,10 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.content = _content.(*content.Model)
 		cmds = append(cmds, cmd)
 
+		_messageInput, cmd := m.messageInput.Update(msg)
+		m.messageInput = _messageInput.(*messageinput.Model)
+		cmds = append(cmds, cmd)
+
 		_preview, cmd := m.preview.Update(msg)
 		m.preview = _preview.(*preview.Model)
 		cmds = append(cmds, cmd)
@@ -146,7 +203,11 @@ func (m *AppModel) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
-		withBorder(m.content.View(), m.focus == focusAreaContent),
+		lipgloss.JoinVertical(
+			lipgloss.Left,
+			withBorder(m.content.View(), m.focus == focusAreaContent),
+			withBorder(m.messageInput.View(), m.focus == focusAreaMessageInput),
+		),
 		withBorder(m.preview.View(), m.focus == focusAreaPreview),
 	)
 }

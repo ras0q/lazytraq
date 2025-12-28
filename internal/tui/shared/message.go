@@ -14,6 +14,13 @@ type (
 		ID uuid.UUID
 	}
 
+	FocusMessageInputMsg struct {
+		ChannelID uuid.UUID
+	}
+	MessageSentMsg struct {
+		MessageID uuid.UUID
+	}
+
 	PreviewMessageMsg         *traqapiext.MessageItem
 	PreviewMessageRenderedMsg struct {
 		MessageID       uuid.UUID
