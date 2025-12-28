@@ -1,7 +1,6 @@
 package preview
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"image"
@@ -10,12 +9,11 @@ import (
 	_ "image/png"
 	"time"
 
+	"github.com/blacktop/go-termimg"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/ansi/sixel"
 	"github.com/google/uuid"
 	"github.com/motoki317/sc"
 	"github.com/ras0q/lazytraq/internal/traqapi"
@@ -23,16 +21,11 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 	"github.com/tdewolff/canvas"
 	"github.com/tdewolff/canvas/renderers/rasterizer"
-	"golang.org/x/image/draw"
 	"golang.org/x/sync/errgroup"
 )
 
-type (
-	stampsRenderedMsg string
-)
-
 var (
-	renderedStampsStyle = lipgloss.NewStyle().Height(5)
+	renderedStampsStyle = lipgloss.NewStyle().Height(8)
 )
 
 type Model struct {
@@ -97,10 +90,7 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 			img = rasterizer.Draw(c, 96.0, canvas.DefaultColorSpace)
 		}
 
-		resizedImg := image.NewRGBA(image.Rect(0, 0, 32, 32))
-		draw.BiLinear.Scale(resizedImg, resizedImg.Bounds(), img, img.Bounds(), draw.Src, nil)
-
-		return resizedImg, nil
+		return img, nil
 	}, 1*time.Hour, 2*time.Hour)
 
 	return &Model{
@@ -126,7 +116,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shared.PreviewMessageRenderedMsg:
 		time.Sleep(100 * time.Millisecond) // for smooth rendering
 		m.viewport.SetContent(msg.RenderedContent)
-		m.renderedStamps = renderSixelImage(msg.RenderedStamps, 2, m.w)
+		m.renderedStamps = msg.RenderedStamps
 
 	case shared.PreviewMessageMsg:
 		m.message = msg
@@ -177,11 +167,10 @@ func (m *Model) renderMessageCmd(message *traqapiext.MessageItem) tea.Cmd {
 				return nil
 			}
 
-			hgap := 8
-			totalWidth := -hgap
-			maxHeight := 0
-			chunks := make([]image.Image, 0, len(message.Message.Stamps))
-
+			termProtocol := termimg.Halfblocks
+			stampWidth, stampHeight, stampSpacing := 10, 4, 1
+			columns := m.w / (stampWidth/2 + stampSpacing)
+			gallery := termimg.NewImageGallery(columns)
 			stampMap := make(map[uuid.UUID]struct{})
 			for _, stamp := range message.Message.Stamps {
 				stampID := stamp.GetStampId()
@@ -191,34 +180,25 @@ func (m *Model) renderMessageCmd(message *traqapiext.MessageItem) tea.Cmd {
 
 				stampMap[stampID] = struct{}{}
 
-				chunk, err := m.stampImageCache.Get(context.Background(), stampID)
+				img, err := m.stampImageCache.Get(context.Background(), stampID)
 				if err != nil {
 					return fmt.Errorf("load stamp image: %w", err)
 				}
 
-				chunks = append(chunks, chunk)
-
-				totalWidth += chunk.Bounds().Dx() + hgap
-				if h := chunk.Bounds().Dy(); h > maxHeight {
-					maxHeight = h
-				}
+				termImg := termimg.New(img)
+				gallery.AddImage(termImg)
 			}
 
-			mergedImg := image.NewRGBA(image.Rect(0, 0, totalWidth, maxHeight))
-			currentX := 0
-			for _, chunk := range chunks {
-				drawRect := image.Rect(currentX, 0, currentX+chunk.Bounds().Dx(), chunk.Bounds().Dy())
-				draw.Draw(mergedImg, drawRect, chunk, chunk.Bounds().Min, draw.Src)
-				currentX += chunk.Bounds().Dx() + hgap
+			gallery.
+				SetProtocol(termProtocol).
+				SetImageSize(stampWidth, stampHeight).
+				SetSpacing(stampSpacing)
+			renderedGallery, err := gallery.Render()
+			if err != nil {
+				return fmt.Errorf("render stamp gallery: %w", err)
 			}
 
-			var buf bytes.Buffer
-			e := sixel.Encoder{}
-			if err := e.Encode(&buf, mergedImg); err != nil {
-				return fmt.Errorf("encode image chunk to sixel: %w", err)
-			}
-
-			renderedStamps = ansi.SixelGraphics(0, 1, 0, buf.Bytes())
+			renderedStamps = renderedGallery
 
 			return nil
 		})
@@ -233,25 +213,4 @@ func (m *Model) renderMessageCmd(message *traqapiext.MessageItem) tea.Cmd {
 			RenderedStamps:  renderedStamps,
 		}
 	}
-}
-
-func renderSixelImage(seq string, h, w int) string {
-	var buf bytes.Buffer
-	// Overwrite the target area with a visible glyph (full block '█') to
-	// cover any sixel image previously rendered. Many terminals composite
-	// sixel graphics behind the text layer, so printing plain spaces may
-	// not visually hide the image. Writing a visible character ensures the
-	// text layer replaces the image and prevents burn-in.
-	for range h {
-		for range w {
-			buf.WriteRune('█')
-		}
-		buf.WriteByte('\n')
-	}
-
-	buf.WriteString(ansi.CursorUp(h))
-	buf.WriteString(seq)
-	buf.WriteString(ansi.CursorUp(h))
-
-	return buf.String()
 }
