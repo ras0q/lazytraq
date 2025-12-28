@@ -14,12 +14,14 @@ import (
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/content"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/header"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/messageinput"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/preview"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 )
 
 type AppModel struct {
+	header       *header.Model
 	sidebar      *sidebar.Model
 	content      *content.Model
 	messageInput *messageinput.Model
@@ -33,7 +35,8 @@ type AppModel struct {
 type focusArea int
 
 const (
-	focusAreaSidebar focusArea = iota
+	focusAreaHeader focusArea = iota + 1
+	focusAreaSidebar
 	focusAreaContent
 	focusAreaMessageInput
 	focusAreaPreview
@@ -55,17 +58,24 @@ func NewAppModel(w, h int, securitySource *traqapiext.SecuritySource) (*AppModel
 		h -= 2
 	}
 
+	headerHeight := 3
+	headerWidth := w
+	mainHeight := h - headerHeight
 	sidebarWidth := int(float64(w) * 0.2)
-	sidebarHeight := h
+	sidebarHeight := mainHeight
 	contentWidth := int(float64(w) * 0.4)
-	contentHeight := int(float64(h) * 0.7)
+	contentHeight := int(float64(mainHeight) * 0.7)
 	messageInputWidth := contentWidth
-	messageInputHeight := h - contentHeight
+	messageInputHeight := mainHeight - contentHeight
 	previewWidth := w - sidebarWidth - contentWidth
-	previewHeight := h
+	previewHeight := mainHeight
 	bp := 2
 
 	return &AppModel{
+		header: header.New(
+			headerWidth-bp,
+			headerHeight-bp,
+		),
 		sidebar: sidebar.New(
 			sidebarWidth-bp,
 			sidebarHeight-bp,
@@ -86,7 +96,9 @@ func NewAppModel(w, h int, securitySource *traqapiext.SecuritySource) (*AppModel
 			previewHeight-bp,
 			traqClient,
 		),
-		ErrCh: make(chan error, 1),
+		ErrCh:     make(chan error, 1),
+		focus:     focusAreaSidebar,
+		channelID: uuid.Nil,
 	}, nil
 }
 
@@ -94,6 +106,7 @@ var _ tea.Model = (*AppModel)(nil)
 
 func (m *AppModel) Init() tea.Cmd {
 	return tea.Batch(
+		m.header.Init(),
 		m.sidebar.Init(),
 		m.content.Init(),
 		m.messageInput.Init(),
@@ -156,6 +169,11 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		default:
 			switch m.focus {
+			case focusAreaHeader:
+				_header, cmd := m.header.Update(msg)
+				m.header = _header.(*header.Model)
+				cmds = append(cmds, cmd)
+
 			case focusAreaSidebar:
 				_sidebar, cmd := m.sidebar.Update(msg)
 				m.sidebar = _sidebar.(*sidebar.Model)
@@ -179,6 +197,10 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	default:
+		_header, cmd := m.header.Update(msg)
+		m.header = _header.(*header.Model)
+		cmds = append(cmds, cmd)
+
 		_sidebar, cmd := m.sidebar.Update(msg)
 		m.sidebar = _sidebar.(*sidebar.Model)
 		cmds = append(cmds, cmd)
@@ -200,15 +222,19 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *AppModel) View() string {
-	return lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
-		lipgloss.JoinVertical(
-			lipgloss.Left,
-			withBorder(m.content.View(), m.focus == focusAreaContent),
-			withBorder(m.messageInput.View(), m.focus == focusAreaMessageInput),
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		withBorder(m.header.View(), m.focus == focusAreaHeader),
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
+			lipgloss.JoinVertical(
+				lipgloss.Left,
+				withBorder(m.content.View(), m.focus == focusAreaContent),
+				withBorder(m.messageInput.View(), m.focus == focusAreaMessageInput),
+			),
+			withBorder(m.preview.View(), m.focus == focusAreaPreview),
 		),
-		withBorder(m.preview.View(), m.focus == focusAreaPreview),
 	)
 }
 
