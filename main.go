@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -41,11 +42,6 @@ func runProgram(ctx context.Context) error {
 		return fmt.Errorf("create root model: %w", err)
 	}
 
-	go func() {
-		if err := <-model.ErrCh; err != nil {
-			log.Fatalf("application error: %v", err)
-		}
-	}()
 
 	opts := []tea.ProgramOption{}
 	if os.Getenv("DEBUG") == "" {
@@ -57,10 +53,8 @@ func runProgram(ctx context.Context) error {
 		return fmt.Errorf("run tea program: %w", err)
 	}
 
-	close(model.ErrCh)
-
-	if err := <-model.ErrCh; err != nil {
-		return fmt.Errorf("application error: %w", err)
+	if len(model.Errors) > 0 {
+		return fmt.Errorf("application errors: %w", errors.Join(model.Errors...))
 	}
 
 	return nil

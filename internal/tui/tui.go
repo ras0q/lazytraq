@@ -26,7 +26,7 @@ type AppModel struct {
 	content      *content.Model
 	messageInput *messageinput.Model
 	preview      *preview.Model
-	ErrCh        chan error
+	Errors       []error
 
 	focus     focusArea
 	channelID uuid.UUID
@@ -97,7 +97,7 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			previewHeight-bp,
 			traqClient,
 		),
-		ErrCh:     make(chan error, 1),
+		Errors:    make([]error, 0, 10),
 		focus:     focusAreaSidebar,
 		channelID: uuid.Nil,
 	}, nil
@@ -130,7 +130,7 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case shared.ErrorMsg:
-		m.ErrCh <- msg
+		m.Errors = append(m.Errors, msg)
 		return m, tea.Quit
 
 	case shared.ReturnToSidebarMsg:
