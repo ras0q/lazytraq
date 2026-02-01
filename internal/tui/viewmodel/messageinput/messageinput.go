@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
+	"github.com/kujtimiihoxha/vimtea"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
@@ -17,30 +16,47 @@ import (
 type Model struct {
 	w, h       int
 	traqClient *traqapi.Client
-	textarea   textarea.Model
+	editor     vimtea.Editor
 
 	channelID uuid.UUID
 }
 
 // New creates a new message input model.
 func New(w, h int, traqClient *traqapi.Client) *Model {
-	ta := textarea.New()
-	ta.Placeholder = "Send a message with Ctrl+J..."
-	ta.SetWidth(w)
-	ta.SetHeight(h)
-	ta.ShowLineNumbers = false
-	ta.Prompt = ""
+	editor := vimtea.NewEditor(
+		vimtea.WithEnableStatusBar(true),
+	)
 
-	return &Model{
+	m := &Model{
 		w:          w,
 		h:          h,
 		traqClient: traqClient,
-		textarea:   ta,
+		editor:     editor,
 	}
+
+	editor.AddBinding(vimtea.KeyBinding{
+		Key:         "enter",
+		Mode:        vimtea.ModeNormal,
+		Description: "Send message",
+		Handler: func(b vimtea.Buffer) tea.Cmd {
+			content := b.Text()
+			if len(content) == 0 {
+				return nil
+			}
+
+			for i, line := range b.Lines() {
+				b.DeleteAt(i, 0, i, len(line))
+			}
+			return m.sendMessageCmd(context.Background(), m.channelID, content)
+		},
+	})
+
+	return m
 }
 
 func (m *Model) Init() tea.Cmd {
-	return textinput.Blink
+	_, cmd := m.editor.SetSize(m.w, m.h)
+	return cmd
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -50,23 +66,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
-			m.textarea.Blur()
-			return m, func() tea.Msg {
-				return shared.ReturnToSidebarMsg{}
+			if m.editor.GetMode() == vimtea.ModeNormal {
+				return m, func() tea.Msg {
+					return shared.ReturnToSidebarMsg{}
+				}
 			}
 
-		case "ctrl+j":
-			content := m.textarea.Value()
-			m.textarea.SetValue("")
-			return m, m.sendMessageCmd(context.Background(), m.channelID, content)
+			m.editor.SetMode(vimtea.ModeNormal)
 		}
 
 	case shared.FocusMessageInputMsg:
 		m.channelID = msg.ChannelID
-		m.textarea.Focus()
+		m.editor.SetMode(vimtea.ModeInsert)
 	}
 
-	m.textarea, cmd = m.textarea.Update(msg)
+	_editor, cmd := m.editor.Update(msg)
+	m.editor = _editor.(vimtea.Editor)
 
 	return m, cmd
 }
@@ -76,7 +91,7 @@ func (m *Model) View() string {
 		Width(m.w).
 		Height(m.h).
 		Render(
-			m.textarea.View(),
+			m.editor.View(),
 		)
 }
 
@@ -103,13 +118,13 @@ func (m *Model) sendMessageCmd(ctx context.Context, channelID uuid.UUID, content
 			}
 
 		case *traqapi.PostMessageBadRequest:
-			return shared.ErrorMsg(errors.New("bad request"))
+			return shared.ErrorMsg(errors.New("post message to traQ: bad request"))
 
 		case *traqapi.PostMessageNotFound:
-			return shared.ErrorMsg(errors.New("not found"))
+			return shared.ErrorMsg(errors.New("post message to traQ: not found"))
 
 		default:
-			return shared.ErrorMsg(fmt.Errorf("unreachable error"))
+			return shared.ErrorMsg(errors.New("post message to traQ: unreachable error"))
 		}
 	}
 }
