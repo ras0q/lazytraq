@@ -23,11 +23,25 @@ func main() {
 }
 
 func runProgram(ctx context.Context) error {
+	var isDebugMode bool
+	if v, ok := os.LookupEnv("LAZYTRAQ_DEBUG"); ok && v != "" {
+		isDebugMode = true
+	}
+
+	if isDebugMode {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
 	apiHost := "q-dev.trapti.tech"
+
+	slog.DebugContext(ctx, "starting lazytraq", "apiHost", apiHost)
+
 	securitySource, err := loginToTraq(ctx, apiHost)
 	if err != nil {
 		return fmt.Errorf("login: %w", err)
 	}
+
+	slog.DebugContext(ctx, "logged in successfully", "apiHost", apiHost)
 
 	w, h, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
@@ -37,14 +51,17 @@ func runProgram(ctx context.Context) error {
 	// NOTE: decrease padding
 	h = h - 2
 
+	slog.DebugContext(ctx, "got terminal size", "width", w, "height", h)
+
 	model, err := tui.NewAppModel(w, h, apiHost, securitySource)
 	if err != nil {
 		return fmt.Errorf("create root model: %w", err)
 	}
 
+	slog.DebugContext(ctx, "created root model")
 
 	opts := []tea.ProgramOption{}
-	if os.Getenv("DEBUG") == "" {
+	if !isDebugMode {
 		opts = append(opts, tea.WithAltScreen())
 	}
 
