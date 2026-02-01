@@ -243,7 +243,7 @@ func (m *AppModel) View() string {
 }
 
 var borderStyle = lipgloss.NewStyle().
-	Border(lipgloss.DoubleBorder())
+	Border(lipgloss.RoundedBorder())
 
 var focusedBorderStyle = borderStyle.
 	BorderForeground(lipgloss.Color("205"))
