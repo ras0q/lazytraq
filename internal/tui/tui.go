@@ -9,7 +9,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/google/uuid"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
@@ -28,8 +27,8 @@ type AppModel struct {
 	preview      *preview.Model
 	Errors       []error
 
-	focus     focusArea
-	channelID uuid.UUID
+	focus   focusArea
+	channel *traqapi.Channel
 }
 
 type focusArea int
@@ -97,9 +96,9 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			previewHeight-bp,
 			traqClient,
 		),
-		Errors:    make([]error, 0, 10),
-		focus:     focusAreaSidebar,
-		channelID: uuid.Nil,
+		Errors:  make([]error, 0, 10),
+		focus:   focusAreaSidebar,
+		channel: nil,
 	}, nil
 }
 
@@ -137,23 +136,23 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.focus = focusAreaSidebar
 
 	case shared.OpenChannelMsg:
-		channelID := msg.ID
-		if channelID == uuid.Nil {
+		channel := msg.Target
+		if channel == nil {
 			break
 		}
 
 		m.focus = focusAreaContent
-		m.channelID = channelID
+		m.channel = channel
 
-		cmd := m.content.FetchMessagesCmd(context.Background(), channelID)
+		cmd := m.content.FetchMessagesCmd(context.Background(), channel.ID)
 		cmds = append(cmds, cmd)
 
 	case shared.MessageSentMsg:
-		if m.channelID == uuid.Nil {
+		if m.channel == nil {
 			break
 		}
 
-		cmd := m.content.FetchMessagesCmd(context.Background(), m.channelID)
+		cmd := m.content.FetchMessagesCmd(context.Background(), m.channel.ID)
 		cmds = append(cmds, cmd)
 
 	case tea.KeyMsg:
@@ -161,10 +160,14 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "n":
+			if m.channel.Force {
+				break
+			}
+
 			m.focus = focusAreaMessageInput
 			cmds = append(cmds, func() tea.Msg {
 				return shared.FocusMessageInputMsg{
-					ChannelID: m.channelID,
+					ChannelID: m.channel.ID,
 				}
 			})
 

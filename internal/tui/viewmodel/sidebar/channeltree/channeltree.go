@@ -146,8 +146,13 @@ func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID],
 
 		case "enter":
 			cmd = func() tea.Msg {
+				channelNode, ok := m.currentTree.Search(focusedID)
+				if !ok {
+					return nil
+				}
+
 				return shared.OpenChannelMsg{
-					ID: focusedID,
+					Target: &channelNode.Channel,
 				}
 			}
 		}

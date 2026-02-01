@@ -2,6 +2,7 @@ package shared
 
 import (
 	"github.com/google/uuid"
+	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 )
 
@@ -11,7 +12,7 @@ type (
 	ReturnToSidebarMsg struct{}
 
 	OpenChannelMsg struct {
-		ID uuid.UUID
+		Target *traqapi.Channel
 	}
 
 	FocusMessageInputMsg struct {
