@@ -62,7 +62,7 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 		var img image.Image
 		switch res := res.(type) {
 		case *traqapi.GetStampImageNotFound:
-			return nil, fmt.Errorf("stamp nof found: %w", err)
+			return nil, fmt.Errorf("get stamp image from traQ: not found")
 
 		case *traqapi.GetStampImageOKImageGIF:
 			img, _, err = image.Decode(res.Data)
