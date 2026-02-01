@@ -45,6 +45,7 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(w),
+		glamour.WithStandardStyle("light"),
 	)
 
 	viewport := viewport.New(w, h-10)
