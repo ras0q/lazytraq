@@ -92,6 +92,7 @@ const (
 	GetMyQRCodeOperation               OperationName = "GetMyQRCode"
 	GetMySessionsOperation             OperationName = "GetMySessions"
 	GetMyStampHistoryOperation         OperationName = "GetMyStampHistory"
+	GetMyStampRecommendationsOperation OperationName = "GetMyStampRecommendations"
 	GetMyStarsOperation                OperationName = "GetMyStars"
 	GetMyTokensOperation               OperationName = "GetMyTokens"
 	GetMyUnreadChannelsOperation       OperationName = "GetMyUnreadChannels"

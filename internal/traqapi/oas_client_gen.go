@@ -615,6 +615,14 @@ type Invoker interface {
 	//
 	// GET /users/me/stamp-history
 	GetMyStampHistory(ctx context.Context, params GetMyStampHistoryParams) ([]StampHistoryEntry, error)
+	// GetMyStampRecommendations invokes getMyStampRecommendations operation.
+	//
+	// 自分のスタンプレコメンドを最大200件まで取得します。
+	// 結果は推薦度の高い順で返されます。
+	// スタンプを使用したことがないユーザーの場合は空配列が返されます。.
+	//
+	// GET /users/me/stamp-recommendations
+	GetMyStampRecommendations(ctx context.Context, params GetMyStampRecommendationsParams) ([]GetMyStampRecommendationsOKItem, error)
 	// GetMyStars invokes getMyStars operation.
 	//
 	// 自分がスターしているチャンネルのUUIDの配列を取得します。.
@@ -10805,6 +10813,109 @@ func (c *Client) sendGetMyStampHistory(ctx context.Context, params GetMyStampHis
 	defer resp.Body.Close()
 
 	result, err := decodeGetMyStampHistoryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetMyStampRecommendations invokes getMyStampRecommendations operation.
+//
+// 自分のスタンプレコメンドを最大200件まで取得します。
+// 結果は推薦度の高い順で返されます。
+// スタンプを使用したことがないユーザーの場合は空配列が返されます。.
+//
+// GET /users/me/stamp-recommendations
+func (c *Client) GetMyStampRecommendations(ctx context.Context, params GetMyStampRecommendationsParams) ([]GetMyStampRecommendationsOKItem, error) {
+	res, err := c.sendGetMyStampRecommendations(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetMyStampRecommendations(ctx context.Context, params GetMyStampRecommendationsParams) (res []GetMyStampRecommendationsOKItem, err error) {
+
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/users/me/stamp-recommendations"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+
+			switch err := c.securityOAuth2(ctx, GetMyStampRecommendationsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+		{
+
+			switch err := c.securityBearerAuth(ctx, GetMyStampRecommendationsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	result, err := decodeGetMyStampRecommendationsResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

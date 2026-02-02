@@ -468,6 +468,12 @@ type GetMyStampHistoryParams struct {
 	Limit OptInt `json:",omitempty,omitzero"`
 }
 
+// GetMyStampRecommendationsParams is parameters of getMyStampRecommendations operation.
+type GetMyStampRecommendationsParams struct {
+	// 件数.
+	Limit OptInt `json:",omitempty,omitzero"`
+}
+
 // GetOAuth2AuthorizeParams is parameters of getOAuth2Authorize operation.
 type GetOAuth2AuthorizeParams struct {
 	ResponseType        OptOAuth2ResponseType `json:",omitempty,omitzero"`

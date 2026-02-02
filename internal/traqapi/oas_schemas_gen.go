@@ -2889,6 +2889,33 @@ func (s GetMyQRCodeOKTextPlain) Read(p []byte) (n int, err error) {
 
 func (*GetMyQRCodeOKTextPlain) getMyQRCodeRes() {}
 
+type GetMyStampRecommendationsOKItem struct {
+	// スタンプUUID.
+	StampId uuid.UUID `json:"stampId"`
+	// レコメンドスコア.
+	Score float64 `json:"score"`
+}
+
+// GetStampId returns the value of StampId.
+func (s *GetMyStampRecommendationsOKItem) GetStampId() uuid.UUID {
+	return s.StampId
+}
+
+// GetScore returns the value of Score.
+func (s *GetMyStampRecommendationsOKItem) GetScore() float64 {
+	return s.Score
+}
+
+// SetStampId sets the value of StampId.
+func (s *GetMyStampRecommendationsOKItem) SetStampId(val uuid.UUID) {
+	s.StampId = val
+}
+
+// SetScore sets the value of Score.
+func (s *GetMyStampRecommendationsOKItem) SetScore(val float64) {
+	s.Score = val
+}
+
 // メッセージ引用通知の設定情報.
 // Ref: #/components/schemas/GetNotifyCitation
 type GetNotifyCitation struct {
@@ -11543,6 +11570,7 @@ const (
 	UserPermissionAddMessageStamp           UserPermission = "add_message_stamp"
 	UserPermissionRemoveMessageStamp        UserPermission = "remove_message_stamp"
 	UserPermissionGetMyStampHistory         UserPermission = "get_my_stamp_history"
+	UserPermissionGetMyStampRecommendations UserPermission = "get_my_stamp_recommendations"
 	UserPermissionGetStampPalette           UserPermission = "get_stamp_palette"
 	UserPermissionCreateStampPalette        UserPermission = "create_stamp_palette"
 	UserPermissionEditStampPalette          UserPermission = "edit_stamp_palette"
@@ -11631,6 +11659,7 @@ func (UserPermission) AllValues() []UserPermission {
 		UserPermissionAddMessageStamp,
 		UserPermissionRemoveMessageStamp,
 		UserPermissionGetMyStampHistory,
+		UserPermissionGetMyStampRecommendations,
 		UserPermissionGetStampPalette,
 		UserPermissionCreateStampPalette,
 		UserPermissionEditStampPalette,
@@ -11770,6 +11799,8 @@ func (s UserPermission) MarshalText() ([]byte, error) {
 	case UserPermissionRemoveMessageStamp:
 		return []byte(s), nil
 	case UserPermissionGetMyStampHistory:
+		return []byte(s), nil
+	case UserPermissionGetMyStampRecommendations:
 		return []byte(s), nil
 	case UserPermissionGetStampPalette:
 		return []byte(s), nil
@@ -11995,6 +12026,9 @@ func (s *UserPermission) UnmarshalText(data []byte) error {
 		return nil
 	case UserPermissionGetMyStampHistory:
 		*s = UserPermissionGetMyStampHistory
+		return nil
+	case UserPermissionGetMyStampRecommendations:
+		*s = UserPermissionGetMyStampRecommendations
 		return nil
 	case UserPermissionGetStampPalette:
 		*s = UserPermissionGetStampPalette

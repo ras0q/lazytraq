@@ -880,6 +880,29 @@ func (s *GetMessagesOKHeaders) Validate() error {
 	return nil
 }
 
+func (s *GetMyStampRecommendationsOKItem) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Float{}).Validate(float64(s.Score)); err != nil {
+			return errors.Wrap(err, "float")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "score",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s GetStampsType) Validate() error {
 	switch s {
 	case "unicode":
@@ -4001,6 +4024,8 @@ func (s UserPermission) Validate() error {
 	case "remove_message_stamp":
 		return nil
 	case "get_my_stamp_history":
+		return nil
+	case "get_my_stamp_recommendations":
 		return nil
 	case "get_stamp_palette":
 		return nil
