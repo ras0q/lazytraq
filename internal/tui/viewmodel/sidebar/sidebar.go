@@ -3,7 +3,7 @@ package sidebar
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ras0q/lazytraq/internal/traqapi"
+	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar/channeltree"
 )
 
@@ -14,11 +14,11 @@ type Model struct {
 
 var _ tea.Model = (*Model)(nil)
 
-func New(w, h int, traqClient *traqapi.Client) *Model {
+func New(w, h int, traqContext *traqapiext.Context) *Model {
 	return &Model{
 		w:                w,
 		h:                h,
-		channelTreeModel: channeltree.New(w-2, h-2, traqClient),
+		channelTreeModel: channeltree.New(w-2, h-2, traqContext),
 	}
 }
 

@@ -3,7 +3,6 @@ package preview
 import (
 	"context"
 	"fmt"
-	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -15,12 +14,8 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
-	"github.com/motoki317/sc"
-	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
-	"github.com/tdewolff/canvas"
-	"github.com/tdewolff/canvas/renderers/rasterizer"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -34,18 +29,17 @@ type State struct {
 }
 
 type Model struct {
-	w, h            int
-	traqClient      *traqapi.Client
-	viewport        viewport.Model
-	renderer        *glamour.TermRenderer
-	stampImageCache *sc.Cache[uuid.UUID, image.Image]
+	w, h        int
+	traqContext *traqapiext.Context
+	viewport    viewport.Model
+	renderer    *glamour.TermRenderer
 
 	state State
 }
 
 var _ tea.Model = (*Model)(nil)
 
-func New(w, h int, traqClient *traqapi.Client) *Model {
+func New(w, h int, traqContext *traqapiext.Context) *Model {
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(w),
@@ -55,56 +49,12 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 	viewport := viewport.New(w, h-10)
 	viewport.SetContent("No message selected.")
 
-	stampImageCache := sc.NewMust(func(ctx context.Context, stampID uuid.UUID) (image.Image, error) {
-		res, err := traqClient.GetStampImage(ctx, traqapi.GetStampImageParams{
-			StampId: stampID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("get stamp image from traQ: %w", err)
-		}
-
-		var img image.Image
-		switch res := res.(type) {
-		case *traqapi.GetStampImageNotFound:
-			return nil, fmt.Errorf("get stamp image from traQ: not found")
-
-		case *traqapi.GetStampImageOKImageGIF:
-			img, _, err = image.Decode(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("decode file to image: %w", err)
-			}
-
-		case *traqapi.GetStampImageOKImageJpeg:
-			img, _, err = image.Decode(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("decode file to image: %w", err)
-			}
-
-		case *traqapi.GetStampImageOKImagePNG:
-			img, _, err = image.Decode(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("decode file to image: %w", err)
-			}
-
-		case *traqapi.GetStampImageOKImageSvgXML:
-			c, err := canvas.ParseSVG(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("parse svg: %w", err)
-			}
-
-			img = rasterizer.Draw(c, 96.0, canvas.DefaultColorSpace)
-		}
-
-		return img, nil
-	}, 1*time.Hour, 2*time.Hour)
-
 	return &Model{
-		w:               w,
-		h:               h - 1,
-		traqClient:      traqClient,
-		viewport:        viewport,
-		renderer:        renderer,
-		stampImageCache: stampImageCache,
+		w:           w,
+		h:           h - 1,
+		traqContext: traqContext,
+		viewport:    viewport,
+		renderer:    renderer,
 	}
 }
 
@@ -185,7 +135,7 @@ func (m *Model) renderMessageCmd(message *traqapiext.MessageItem) tea.Cmd {
 
 				stampMap[stampID] = struct{}{}
 
-				img, err := m.stampImageCache.Get(context.Background(), stampID)
+				img, err := m.traqContext.StampImages.Get(context.Background(), stampID)
 				if err != nil {
 					return fmt.Errorf("load stamp image: %w", err)
 				}

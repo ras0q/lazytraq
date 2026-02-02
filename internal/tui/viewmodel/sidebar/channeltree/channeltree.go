@@ -22,19 +22,19 @@ type State struct {
 }
 
 type Model struct {
-	w, h       int
-	traqClient *traqapi.Client
-	treeModel  bubbletree.Model[uuid.UUID]
+	w, h        int
+	traqContext *traqapiext.Context
+	treeModel   bubbletree.Model[uuid.UUID]
 
 	state State
 }
 
-func New(w, h int, traqClient *traqapi.Client) *Model {
+func New(w, h int, traqContext *traqapiext.Context) *Model {
 	model := &Model{
-		w:          w,
-		h:          h,
-		traqClient: traqClient,
-		treeModel:  bubbletree.New[uuid.UUID](w, h),
+		w:           w,
+		h:           h,
+		traqContext: traqContext,
+		treeModel:   bubbletree.New[uuid.UUID](w, h),
 	}
 	model.treeModel.OnUpdate = model.OnTreeUpdate
 	model.treeModel.Symbols = bubbletree.TreeSymbols{
@@ -84,7 +84,7 @@ func (m *Model) View() string {
 
 func (m *Model) fetchChannelsCmd(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
-		channels, err := m.traqClient.GetChannels(ctx, traqapi.GetChannelsParams{})
+		channels, err := m.traqContext.Channels.Get(ctx, struct{}{})
 		if err != nil {
 			return shared.ErrorMsg(fmt.Errorf("get channels from traQ: %w", err))
 		}

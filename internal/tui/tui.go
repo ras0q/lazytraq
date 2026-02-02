@@ -3,9 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -45,15 +43,9 @@ const (
 )
 
 func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySource) (*AppModel, error) {
-	httpClient := http.DefaultClient
-	httpClient.Timeout = 10 * time.Second
-	traqClient, err := traqapi.NewClient(
-		fmt.Sprintf("https://%s/api/v3", apiHost),
-		securitySource,
-		traqapi.WithClient(httpClient),
-	)
+	traqContext, err := traqapiext.NewContext(apiHost, securitySource)
 	if err != nil {
-		return nil, fmt.Errorf("create traq client: %w", err)
+		return nil, fmt.Errorf("create traq context: %w", err)
 	}
 
 	if os.Getenv("DEBUG") != "" {
@@ -80,32 +72,32 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			headerWidth-bp,
 			headerHeight-bp,
 			apiHost,
-			traqClient,
+			traqContext,
 		),
 		sidebar: sidebar.New(
 			sidebarWidth-bp,
 			sidebarHeight-bp,
-			traqClient,
+			traqContext,
 		),
 		content: content.New(
 			contentWidth-bp,
 			contentHeight-bp,
-			traqClient,
+			traqContext,
 		),
 		messageInput: messageinput.New(
 			messageInputWidth-bp,
 			messageInputHeight-bp,
-			traqClient,
+			traqContext,
 		),
 		preview: preview.New(
 			previewWidth-bp,
 			previewHeight-bp,
-			traqClient,
+			traqContext,
 		),
 		timeline: timeline.New(
 			timelineWidth-bp,
 			timelineHeight-bp,
-			traqClient,
+			traqContext,
 		),
 		Errors:  make([]error, 0, 10),
 		focus:   focusAreaSidebar,

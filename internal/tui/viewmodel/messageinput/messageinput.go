@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kujtimiihoxha/vimtea"
 	"github.com/ras0q/lazytraq/internal/traqapi"
+	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
@@ -18,24 +19,24 @@ type State struct {
 }
 
 type Model struct {
-	w, h       int
-	traqClient *traqapi.Client
-	editor     vimtea.Editor
+	w, h        int
+	traqContext *traqapiext.Context
+	editor      vimtea.Editor
 
 	state State
 }
 
 // New creates a new message input model.
-func New(w, h int, traqClient *traqapi.Client) *Model {
+func New(w, h int, traqContext *traqapiext.Context) *Model {
 	editor := vimtea.NewEditor(
 		vimtea.WithEnableStatusBar(true),
 	)
 
 	m := &Model{
-		w:          w,
-		h:          h,
-		traqClient: traqClient,
-		editor:     editor,
+		w:           w,
+		h:           h,
+		traqContext: traqContext,
+		editor:      editor,
 	}
 
 	editor.AddBinding(vimtea.KeyBinding{
@@ -101,15 +102,13 @@ func (m *Model) View() string {
 
 func (m *Model) sendMessageCmd(ctx context.Context, channelID uuid.UUID, content string) tea.Cmd {
 	return func() tea.Msg {
-		res, err := m.traqClient.PostMessage(
+		res, err := m.traqContext.PostMessage(
 			ctx,
-			traqapi.NewOptPostMessageRequest(traqapi.PostMessageRequest{
+			traqapi.PostMessageRequest{
 				Content: content,
 				Embed:   traqapi.NewOptBool(true),
-			}),
-			traqapi.PostMessageParams{
-				ChannelId: channelID,
 			},
+			channelID,
 		)
 		if err != nil {
 			return shared.ErrorMsg(fmt.Errorf("post message to traQ: %w", err))

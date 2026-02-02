@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ras0q/lazytraq/internal/traqapi"
+	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
@@ -19,26 +20,26 @@ type State struct {
 }
 
 type Model struct {
-	w, h       int
-	apiHost    string
-	traqClient *traqapi.Client
+	w, h        int
+	apiHost     string
+	traqContext *traqapiext.Context
 
 	state State
 }
 
-func New(w, h int, apiHost string, traqClient *traqapi.Client) *Model {
+func New(w, h int, apiHost string, traqContext *traqapiext.Context) *Model {
 	return &Model{
-		w:          w,
-		h:          h,
-		apiHost:    apiHost,
-		traqClient: traqClient,
+		w:           w,
+		h:           h,
+		apiHost:     apiHost,
+		traqContext: traqContext,
 	}
 }
 
 func (m *Model) Init() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		me, err := m.traqClient.GetMe(ctx)
+		me, err := m.traqContext.Me.Get(ctx, struct{}{})
 		if err != nil {
 			return shared.ErrorMsg(fmt.Errorf("fetch me: %w", err))
 		}

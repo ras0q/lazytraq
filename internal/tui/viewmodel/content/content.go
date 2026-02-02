@@ -2,7 +2,6 @@ package content
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 
@@ -28,7 +27,7 @@ type State struct {
 
 type Model struct {
 	w, h              int
-	traqClient        *traqapi.Client
+	traqContext       *traqapiext.Context
 	messagesListModel list.Model
 
 	state State
@@ -36,7 +35,7 @@ type Model struct {
 
 var _ tea.Model = (*Model)(nil)
 
-func New(w, h int, traqClient *traqapi.Client) *Model {
+func New(w, h int, traqContext *traqapiext.Context) *Model {
 	messagesListModel := list.New(
 		[]list.Item{},
 		newListDelegate(),
@@ -51,7 +50,7 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 	return &Model{
 		w:                 w,
 		h:                 h,
-		traqClient:        traqClient,
+		traqContext:       traqContext,
 		messagesListModel: messagesListModel,
 	}
 }
@@ -122,59 +121,34 @@ func (m *Model) View() string {
 
 func (m *Model) FetchMessagesCmd(ctx context.Context, channelID uuid.UUID) tea.Cmd {
 	return func() tea.Msg {
-		res, err := m.traqClient.GetMessages(ctx, traqapi.GetMessagesParams{
-			ChannelId: channelID,
-		})
+		messages, err := m.traqContext.Messages.Get(ctx, channelID)
 		if err != nil {
 			return shared.ErrorMsg(fmt.Errorf("get messages from traQ: %w", err))
 		}
 
-		switch res := res.(type) {
-		case *traqapi.GetMessagesOKHeaders:
-			return messagesFetchedMsg(res.Response)
-
-		case *traqapi.GetMessagesBadRequest:
-			return shared.ErrorMsg(errors.New("bad request"))
-
-		case *traqapi.GetMessagesNotFound:
-			return shared.ErrorMsg(errors.New("not found"))
-
-		default:
-			return shared.ErrorMsg(fmt.Errorf("unreachable error"))
-		}
+		return messagesFetchedMsg(messages)
 	}
 }
 
 func (m *Model) fetchUsersCmd(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
-		res, err := m.traqClient.GetUsers(ctx, traqapi.GetUsersParams{})
+		users, err := m.traqContext.Users.Get(ctx, struct{}{})
 		if err != nil {
 			return shared.ErrorMsg(fmt.Errorf("get users from traQ: %w", err))
 		}
 
-		switch res := res.(type) {
-		case *traqapi.GetUsersOKApplicationJSON:
-			userMap := make(map[uuid.UUID]traqapi.User)
-			for _, user := range *res {
-				userMap[user.ID] = user
-			}
-
-			return usersFetchedMsg(userMap)
-
-		case *traqapi.GetUsersBadRequest:
-			return shared.ErrorMsg(errors.New("bad request"))
-
-		default:
-			return shared.ErrorMsg(fmt.Errorf("unreachable error"))
+		userMap := make(map[uuid.UUID]traqapi.User)
+		for _, user := range users {
+			userMap[user.ID] = user
 		}
+
+		return usersFetchedMsg(userMap)
 	}
 }
 
 func (m *Model) fetchStampsCmd(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
-		stamps, err := m.traqClient.GetStamps(ctx, traqapi.GetStampsParams{
-			IncludeUnicode: traqapi.NewOptBool(true),
-		})
+		stamps, err := m.traqContext.Stamps.Get(ctx, struct{}{})
 		if err != nil {
 			return shared.ErrorMsg(fmt.Errorf("get stamps from traQ: %w", err))
 		}
