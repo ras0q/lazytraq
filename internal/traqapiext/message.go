@@ -20,7 +20,7 @@ var _ list.DefaultItem = MessageItem{}
 func (m MessageItem) FilterValue() string {
 	return fmt.Sprintf(
 		"@%s - %s",
-		cmp.Or(m.User.GetName(), "unknown"),
+		GetUsernameOrUnknown(&m.User),
 		m.Message.GetContent(),
 	)
 }
@@ -35,6 +35,14 @@ func (m MessageItem) Title() string {
 	return fmt.Sprintf(
 		"%s - @%s",
 		cmp.Or(m.User.GetDisplayName(), "Unknown"),
-		cmp.Or(m.User.GetName(), "unknown"),
+		GetUsernameOrUnknown(&m.User),
 	)
+}
+
+// GetUsernameOrUnknown returns the username or "unknown" if the user is nil
+func GetUsernameOrUnknown(user *traqapi.User) string {
+	if user == nil {
+		return "unknown"
+	}
+	return cmp.Or(user.GetName(), "unknown")
 }

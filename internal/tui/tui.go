@@ -17,6 +17,7 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/messageinput"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/preview"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/timeline"
 )
 
 type AppModel struct {
@@ -25,6 +26,7 @@ type AppModel struct {
 	content      *content.Model
 	messageInput *messageinput.Model
 	preview      *preview.Model
+	timeline     *timeline.Model
 	Errors       []error
 
 	focus   focusArea
@@ -39,6 +41,7 @@ const (
 	focusAreaContent
 	focusAreaMessageInput
 	focusAreaPreview
+	focusAreaTimeline
 )
 
 func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySource) (*AppModel, error) {
@@ -64,10 +67,12 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 	sidebarHeight := mainHeight
 	contentWidth := int(float64(w) * 0.4)
 	contentHeight := int(float64(mainHeight) * 0.7)
-	messageInputWidth := contentWidth
+	messageInputWidth := w - sidebarWidth
 	messageInputHeight := mainHeight - contentHeight
 	previewWidth := w - sidebarWidth - contentWidth
 	previewHeight := mainHeight
+	timelineWidth := w - sidebarWidth
+	timelineHeight := contentHeight
 	bp := 2
 
 	return &AppModel{
@@ -97,6 +102,11 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			previewHeight-bp,
 			traqClient,
 		),
+		timeline: timeline.New(
+			timelineWidth-bp,
+			timelineHeight-bp,
+			traqClient,
+		),
 		Errors:  make([]error, 0, 10),
 		focus:   focusAreaSidebar,
 		channel: nil,
@@ -112,6 +122,7 @@ func (m *AppModel) Init() tea.Cmd {
 		m.content.Init(),
 		m.messageInput.Init(),
 		m.preview.Init(),
+		m.timeline.Init(),
 	)
 }
 
@@ -142,10 +153,10 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			break
 		}
 
-		m.focus = focusAreaContent
+		m.focus = focusAreaTimeline
 		m.channel = channel
 
-		cmd := m.content.FetchMessagesCmd(context.Background(), channel.ID)
+		cmd := m.timeline.FetchMessagesCmd(context.Background(), channel.ID)
 		cmds = append(cmds, cmd)
 
 	case shared.MessageSentMsg:
@@ -198,6 +209,11 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				_preview, cmd := m.preview.Update(msg)
 				m.preview = _preview.(*preview.Model)
 				cmds = append(cmds, cmd)
+
+			case focusAreaTimeline:
+				_timeline, cmd := m.timeline.Update(msg)
+				m.timeline = _timeline.(*timeline.Model)
+				cmds = append(cmds, cmd)
 			}
 		}
 
@@ -221,6 +237,10 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_preview, cmd := m.preview.Update(msg)
 		m.preview = _preview.(*preview.Model)
 		cmds = append(cmds, cmd)
+
+		_timeline, cmd := m.timeline.Update(msg)
+		m.timeline = _timeline.(*timeline.Model)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -235,10 +255,9 @@ func (m *AppModel) View() string {
 			withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				withBorder(m.content.View(), m.focus == focusAreaContent),
+				withBorder(m.timeline.View(), m.focus == focusAreaTimeline),
 				withBorder(m.messageInput.View(), m.focus == focusAreaMessageInput),
 			),
-			withBorder(m.preview.View(), m.focus == focusAreaPreview),
 		),
 	)
 }
