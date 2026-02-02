@@ -38,10 +38,10 @@ func New(w, h int, traqContext *traqapiext.Context) *Model {
 	}
 	model.treeModel.OnUpdate = model.OnTreeUpdate
 	model.treeModel.Symbols = bubbletree.TreeSymbols{
-		BranchConnector: "├─ ",
-		LastConnector:   "└─ ",
-		IndentWithChild: "│  ",
-		IndentNoChild:   "   ",
+		BranchConnector: "├── ",
+		LastConnector:   "└── ",
+		IndentWithChild: "│   ",
+		IndentNoChild:   "    ",
 	}
 	model.treeModel.SkipRoot = true
 
@@ -138,6 +138,12 @@ func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID],
 			}
 
 			if channelNode.IsLeaf() {
+				cmd = func() tea.Msg {
+					return shared.OpenChannelMsg{
+						Target: &channelNode.Channel,
+					}
+				}
+
 				break
 			}
 

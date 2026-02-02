@@ -26,12 +26,12 @@ func (m *ChannelNode) ID() uuid.UUID {
 
 // Content implements bubbletree.Tree.
 func (m *ChannelNode) Content() string {
-	prefix := ""
+	prefix := "▶ "
 	if !m.IsLeaf() {
 		if m.IsOpen.Load() {
-			prefix = "▼"
+			prefix = "▽ "
 		} else {
-			prefix = "▶"
+			prefix = "▷ "
 		}
 	}
 
