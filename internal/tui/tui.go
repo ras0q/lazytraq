@@ -19,6 +19,7 @@ import (
 )
 
 type AppModel struct {
+	theme        shared.Theme
 	header       *header.Model
 	sidebar      *sidebar.Model
 	content      *content.Model
@@ -67,12 +68,16 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 	timelineHeight := contentHeight
 	bp := 2
 
+	theme := shared.DefaultTheme()
+
 	return &AppModel{
+		theme: theme,
 		header: header.New(
 			headerWidth-bp,
 			headerHeight-bp,
 			apiHost,
 			traqContext,
+			theme,
 		),
 		sidebar: sidebar.New(
 			sidebarWidth-bp,
@@ -93,11 +98,13 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			previewWidth-bp,
 			previewHeight-bp,
 			traqContext,
+			theme,
 		),
 		timeline: timeline.New(
 			timelineWidth-bp,
 			timelineHeight-bp,
 			traqContext,
+			theme,
 		),
 		Errors:  make([]error, 0, 10),
 		focus:   focusAreaSidebar,
@@ -241,29 +248,15 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *AppModel) View() string {
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		withBorder(m.header.View(), m.focus == focusAreaHeader),
+		m.theme.WithBorder(m.header.View(), m.focus == focusAreaHeader),
 		lipgloss.JoinHorizontal(
 			lipgloss.Top,
-			withBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
+			m.theme.WithBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				withBorder(m.timeline.View(), m.focus == focusAreaTimeline),
-				withBorder(m.messageInput.View(), m.focus == focusAreaMessageInput),
+				m.theme.WithBorder(m.timeline.View(), m.focus == focusAreaTimeline),
+				m.theme.WithBorder(m.messageInput.View(), m.focus == focusAreaMessageInput),
 			),
 		),
 	)
-}
-
-var borderStyle = lipgloss.NewStyle().
-	Border(lipgloss.RoundedBorder())
-
-var focusedBorderStyle = borderStyle.
-	BorderForeground(lipgloss.Color("205"))
-
-func withBorder(s string, focused bool) string {
-	if focused {
-		return focusedBorderStyle.Render(s)
-	}
-
-	return borderStyle.Render(s)
 }

@@ -23,16 +23,18 @@ type Model struct {
 	w, h        int
 	apiHost     string
 	traqContext *traqapiext.Context
+	theme       shared.Theme
 
 	state State
 }
 
-func New(w, h int, apiHost string, traqContext *traqapiext.Context) *Model {
+func New(w, h int, apiHost string, traqContext *traqapiext.Context, theme shared.Theme) *Model {
 	return &Model{
 		w:           w,
 		h:           h,
 		apiHost:     apiHost,
 		traqContext: traqContext,
+		theme:       theme,
 	}
 }
 
@@ -57,24 +59,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-var titleStyle = lipgloss.NewStyle().
-	Bold(true).
-	Italic(true)
-
 func (m *Model) View() string {
 	leftPart := lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		titleStyle.Render("lazytraq"),
+		m.theme.Header.Title.Render("lazytraq"),
 		" in ",
-		lipgloss.NewStyle().Bold(true).Render(m.apiHost),
+		m.theme.Header.Host.Render(m.apiHost),
 	)
 
 	username := "@uknown"
 	if m.state.me != nil {
 		username = fmt.Sprintf("@%s", m.state.me.Name)
 	}
-	rightPart := lipgloss.NewStyle().
-		Bold(true).
+	rightPart := m.theme.Header.Username.
 		Width(m.w - lipgloss.Width(leftPart) - 1).
 		Align(lipgloss.Right).
 		Render(username)

@@ -19,10 +19,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var (
-	renderedStampsStyle = lipgloss.NewStyle().Height(8)
-)
-
 type State struct {
 	message        *traqapiext.MessageItem
 	renderedStamps string
@@ -33,13 +29,14 @@ type Model struct {
 	traqContext *traqapiext.Context
 	viewport    viewport.Model
 	renderer    *glamour.TermRenderer
+	theme       shared.Theme
 
 	state State
 }
 
 var _ tea.Model = (*Model)(nil)
 
-func New(w, h int, traqContext *traqapiext.Context) *Model {
+func New(w, h int, traqContext *traqapiext.Context, theme shared.Theme) *Model {
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(w),
@@ -55,6 +52,7 @@ func New(w, h int, traqContext *traqapiext.Context) *Model {
 		traqContext: traqContext,
 		viewport:    viewport,
 		renderer:    renderer,
+		theme:       theme,
 	}
 }
 
@@ -88,12 +86,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View implements tea.Model.
 func (m *Model) View() string {
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		m.viewport.View(),
-		renderedStampsStyle.Render(m.state.renderedStamps),
+		m.theme.Preview.Stamps.Render(m.state.renderedStamps),
 	)
 }
 

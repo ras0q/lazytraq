@@ -31,13 +31,14 @@ type Model struct {
 	traqContext *traqapiext.Context
 	viewport    viewport.Model
 	renderer    *glamour.TermRenderer
+	theme       shared.Theme
 
 	state State
 }
 
 var _ tea.Model = (*Model)(nil)
 
-func New(w, h int, traqContext *traqapiext.Context) *Model {
+func New(w, h int, traqContext *traqapiext.Context, theme shared.Theme) *Model {
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(w-10),
@@ -52,6 +53,7 @@ func New(w, h int, traqContext *traqapiext.Context) *Model {
 		traqContext: traqContext,
 		viewport:    vp,
 		renderer:    renderer,
+		theme:       theme,
 	}
 }
 
@@ -130,10 +132,7 @@ func (m *Model) renderTimeline() {
 	}
 
 	var sb strings.Builder
-	timeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	userStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
-	separatorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	separator := separatorStyle.Render(" │ ")
+	separator := m.theme.Timeline.Separator.Render(" │ ")
 	indent := strings.Repeat(" ", 5)
 
 	for _, message := range m.state.messages {
@@ -151,9 +150,9 @@ func (m *Model) renderTimeline() {
 
 		for j, line := range lines {
 			if j == 0 {
-				sb.WriteString(timeStyle.Render(timestamp))
+				sb.WriteString(m.theme.Timeline.Time.Render(timestamp))
 				sb.WriteString(separator)
-				sb.WriteString(userStyle.Render("@" + username))
+				sb.WriteString(m.theme.Timeline.Username.Render("@" + username))
 				sb.WriteString("\n")
 				sb.WriteString(indent)
 				sb.WriteString(separator)
