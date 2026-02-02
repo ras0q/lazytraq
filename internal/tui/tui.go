@@ -75,6 +75,7 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			headerWidth-bp,
 			headerHeight-bp,
 			apiHost,
+			traqClient,
 		),
 		sidebar: sidebar.New(
 			sidebarWidth-bp,
