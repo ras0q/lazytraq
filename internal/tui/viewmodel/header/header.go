@@ -14,12 +14,16 @@ type (
 	meFetchedMsg *traqapi.MyUserDetail
 )
 
+type State struct {
+	me *traqapi.MyUserDetail
+}
+
 type Model struct {
 	w, h       int
 	apiHost    string
 	traqClient *traqapi.Client
 
-	me *traqapi.MyUserDetail
+	state State
 }
 
 func New(w, h int, apiHost string, traqClient *traqapi.Client) *Model {
@@ -46,7 +50,7 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case meFetchedMsg:
-		m.me = msg
+		m.state.me = msg
 	}
 
 	return m, nil
@@ -65,8 +69,8 @@ func (m *Model) View() string {
 	)
 
 	username := "@uknown"
-	if m.me != nil {
-		username = fmt.Sprintf("@%s", m.me.Name)
+	if m.state.me != nil {
+		username = fmt.Sprintf("@%s", m.state.me.Name)
 	}
 	rightPart := lipgloss.NewStyle().
 		Bold(true).

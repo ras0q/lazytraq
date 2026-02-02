@@ -28,6 +28,11 @@ var (
 	renderedStampsStyle = lipgloss.NewStyle().Height(8)
 )
 
+type State struct {
+	message        *traqapiext.MessageItem
+	renderedStamps string
+}
+
 type Model struct {
 	w, h            int
 	traqClient      *traqapi.Client
@@ -35,8 +40,7 @@ type Model struct {
 	renderer        *glamour.TermRenderer
 	stampImageCache *sc.Cache[uuid.UUID, image.Image]
 
-	message        *traqapiext.MessageItem
-	renderedStamps string
+	state State
 }
 
 var _ tea.Model = (*Model)(nil)
@@ -117,12 +121,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shared.PreviewMessageRenderedMsg:
 		time.Sleep(100 * time.Millisecond) // for smooth rendering
 		m.viewport.SetContent(msg.RenderedContent)
-		m.renderedStamps = msg.RenderedStamps
+		m.state.renderedStamps = msg.RenderedStamps
 
 	case shared.PreviewMessageMsg:
-		m.message = msg
+		m.state.message = msg
 		m.viewport.SetContent("")
-		m.renderedStamps = ""
+		m.state.renderedStamps = ""
 		cmds = append(cmds, m.renderMessageCmd(msg))
 
 	case tea.KeyMsg:
@@ -139,7 +143,7 @@ func (m *Model) View() string {
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		m.viewport.View(),
-		renderedStampsStyle.Render(m.renderedStamps),
+		renderedStampsStyle.Render(m.state.renderedStamps),
 	)
 }
 

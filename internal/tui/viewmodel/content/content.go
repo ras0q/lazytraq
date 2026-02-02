@@ -21,13 +21,17 @@ type (
 	stampsFetchedMsg   map[uuid.UUID]traqapi.StampWithThumbnail
 )
 
+type State struct {
+	users  map[uuid.UUID]traqapi.User
+	stamps map[uuid.UUID]traqapi.StampWithThumbnail
+}
+
 type Model struct {
 	w, h              int
 	traqClient        *traqapi.Client
 	messagesListModel list.Model
 
-	users  map[uuid.UUID]traqapi.User
-	stamps map[uuid.UUID]traqapi.StampWithThumbnail
+	state State
 }
 
 var _ tea.Model = (*Model)(nil)
@@ -72,7 +76,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		items := make([]list.Item, 0, len(messages))
 		for _, message := range messages {
-			user := m.users[message.GetUserId()]
+			user := m.state.users[message.GetUserId()]
 			items = append(items, traqapiext.MessageItem{
 				Message: message,
 				User:    user,
@@ -84,10 +88,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.messagesListModel.Select(len(messages) - 1)
 
 	case usersFetchedMsg:
-		m.users = msg
+		m.state.users = msg
 
 	case stampsFetchedMsg:
-		m.stamps = msg
+		m.state.stamps = msg
 
 	case tea.KeyMsg:
 		switch msg.String() {

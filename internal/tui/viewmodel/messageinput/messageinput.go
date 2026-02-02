@@ -13,12 +13,16 @@ import (
 	"github.com/ras0q/lazytraq/internal/tui/shared"
 )
 
+type State struct {
+	channelID uuid.UUID
+}
+
 type Model struct {
 	w, h       int
 	traqClient *traqapi.Client
 	editor     vimtea.Editor
 
-	channelID uuid.UUID
+	state State
 }
 
 // New creates a new message input model.
@@ -47,7 +51,7 @@ func New(w, h int, traqClient *traqapi.Client) *Model {
 			for i, line := range b.Lines() {
 				b.DeleteAt(i, 0, i, len(line))
 			}
-			return m.sendMessageCmd(context.Background(), m.channelID, content)
+			return m.sendMessageCmd(context.Background(), m.state.channelID, content)
 		},
 	})
 
@@ -76,7 +80,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case shared.FocusMessageInputMsg:
-		m.channelID = msg.ChannelID
+		m.state.channelID = msg.ChannelID
 		m.editor.SetMode(vimtea.ModeInsert)
 	}
 

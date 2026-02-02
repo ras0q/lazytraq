@@ -17,12 +17,16 @@ type (
 	channelsFetchedMsg *traqapi.ChannelList
 )
 
+type State struct {
+	tree *traqapiext.ChannelNode
+}
+
 type Model struct {
 	w, h       int
 	traqClient *traqapi.Client
 	treeModel  bubbletree.Model[uuid.UUID]
 
-	currentTree *traqapiext.ChannelNode
+	state State
 }
 
 func New(w, h int, traqClient *traqapi.Client) *Model {
@@ -58,7 +62,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case channelsFetchedMsg:
 		publicChannels := msg.Public
 		tree := traqapiext.ConstructTree(publicChannels)
-		m.currentTree = tree
+		m.state.tree = tree
 		cmd := m.treeModel.SetTree(tree)
 		cmds = append(cmds, cmd)
 	}
@@ -90,7 +94,7 @@ func (m *Model) fetchChannelsCmd(ctx context.Context) tea.Cmd {
 }
 
 func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID], focusedID uuid.UUID, msg tea.Msg) tea.Cmd {
-	if m.currentTree == nil {
+	if m.state.tree == nil {
 		return nil
 	}
 
@@ -100,7 +104,7 @@ func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID],
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "h":
-			channelNode, ok := m.currentTree.Search(focusedID)
+			channelNode, ok := m.state.tree.Search(focusedID)
 			if !ok {
 				break
 			}
@@ -112,7 +116,7 @@ func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID],
 			} else {
 				parentID, ok := channelNode.Channel.GetParentId().Get()
 				if ok {
-					parentNode, ok := m.currentTree.Search(parentID)
+					parentNode, ok := m.state.tree.Search(parentID)
 					if !ok {
 						break
 					}
@@ -123,12 +127,12 @@ func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID],
 			}
 
 			cmd = tea.Batch(
-				m.treeModel.SetTree(m.currentTree),
+				m.treeModel.SetTree(m.state.tree),
 				m.treeModel.SetFocusedID(newFocusedID),
 			)
 
 		case "l":
-			channelNode, ok := m.currentTree.Search(focusedID)
+			channelNode, ok := m.state.tree.Search(focusedID)
 			if !ok {
 				break
 			}
@@ -140,13 +144,13 @@ func (m *Model) OnTreeUpdate(renderedLines []bubbletree.RenderedLine[uuid.UUID],
 			channelNode.IsOpen.Store(true)
 
 			cmd = tea.Batch(
-				m.treeModel.SetTree(m.currentTree),
+				m.treeModel.SetTree(m.state.tree),
 				m.treeModel.SetFocusedID(focusedID),
 			)
 
 		case "enter":
 			cmd = func() tea.Msg {
-				channelNode, ok := m.currentTree.Search(focusedID)
+				channelNode, ok := m.state.tree.Search(focusedID)
 				if !ok {
 					return nil
 				}
