@@ -31,18 +31,12 @@ type TimelineStyles struct {
 	Separator  lipgloss.Style
 }
 
-// PreviewStyles defines styling for preview component
-type PreviewStyles struct {
-	Stamps lipgloss.Style
-}
-
 // Theme aggregates all style definitions
 type Theme struct {
 	Colors   Colors
 	Border   BorderStyles
 	Header   HeaderStyles
 	Timeline TimelineStyles
-	Preview  PreviewStyles
 }
 
 // DefaultTheme returns the default color scheme
@@ -74,9 +68,6 @@ func DefaultTheme() Theme {
 				PaddingLeft(1),
 			Username:  lipgloss.NewStyle().Foreground(colors.Primary).Bold(true),
 			Separator: lipgloss.NewStyle().Foreground(colors.Muted),
-		},
-		Preview: PreviewStyles{
-			Stamps: lipgloss.NewStyle().Height(8),
 		},
 	}
 }
