@@ -155,7 +155,7 @@ func (m *Model) renderTimeline() error {
 
 			termProtocol := termimg.Halfblocks
 			stampWidth, stampHeight, stampSpacing := 10, 4, 1
-			columns := m.w / (stampWidth/2 + stampSpacing)
+			columns := (m.w * 2 / 3) / (stampWidth/2 + stampSpacing)
 			gallery := termimg.NewImageGallery(columns)
 			stampMap := make(map[uuid.UUID]struct{})
 			for _, stamp := range stamps {
