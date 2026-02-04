@@ -1,19 +1,52 @@
 package traqapiext
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+	"io"
 	"net/http"
+	"os"
+	"path"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/motoki317/sc"
+	"github.com/ras0q/goalie"
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/tdewolff/canvas"
 	"github.com/tdewolff/canvas/renderers/rasterizer"
 )
+
+func init() {
+	// TODO: https://github.com/tdewolff/canvas/issues/372
+	image.RegisterFormat("svg", "<svg", func(r io.Reader) (image.Image, error) {
+		c, err := canvas.ParseSVG(r)
+		if err != nil {
+			return nil, fmt.Errorf("parse svg: %w", err)
+		}
+
+		img := rasterizer.Draw(c, 96.0, canvas.DefaultColorSpace)
+		return img, nil
+	}, func(r io.Reader) (image.Config, error) {
+		c, err := canvas.ParseSVG(r)
+		if err != nil {
+			return image.Config{}, fmt.Errorf("parse svg: %w", err)
+		}
+
+		return image.Config{
+			ColorModel: color.RGBAModel,
+			Width:      int(c.W),
+			Height:     int(c.H),
+		}, nil
+	})
+}
 
 type Context struct {
 	apiHost string
@@ -101,12 +134,6 @@ func (c *Context) PostMessage(ctx context.Context, request traqapi.PostMessageRe
 	return res, nil
 }
 
-func (c *Context) GetStampImage(ctx context.Context, stampID uuid.UUID) (traqapi.GetStampImageRes, error) {
-	return c.client.GetStampImage(ctx, traqapi.GetStampImageParams{
-		StampId: stampID,
-	})
-}
-
 func wrapf(errp *error, format string, args ...any) {
 	if *errp != nil {
 		*errp = fmt.Errorf("%s: %w", fmt.Sprintf(format, args...), *errp)
@@ -186,11 +213,51 @@ func newStampsStore(traqClient *traqapi.Client) (*sc.Cache[struct{}, []traqapi.S
 	}, freshFor, ttl)
 }
 
-func newStampImagesStore(traqClient *traqapi.Client) (*sc.Cache[uuid.UUID, image.Image], error) {
+func newStampImagesStore(traqClient *traqapi.Client) (_ *sc.Cache[uuid.UUID, image.Image], err error) {
+	g := goalie.New()
+	defer g.Collect(&err)
+
 	freshFor := time.Minute * 5
 	ttl := time.Minute * 10
 
 	return sc.New(func(ctx context.Context, stampID uuid.UUID) (image.Image, error) {
+		baseCacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return nil, fmt.Errorf("get user cache dir: %w", err)
+		}
+
+		cacheDir := path.Join(baseCacheDir, "lazytraq", "stamp_images")
+		if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
+			return nil, fmt.Errorf("create stamp image cache dir: %w", err)
+		}
+
+		cacheRoot, err := os.OpenRoot(cacheDir)
+		if err != nil {
+			return nil, fmt.Errorf("open stamp image cache dir: %w", err)
+		}
+		defer g.Guard(cacheRoot.Close)
+
+		stampCacheDir := path.Join(cacheDir, stampID.String())
+		entries, err := os.ReadDir(stampCacheDir)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("read stamp image cache subdir (%s): %w", stampCacheDir, err)
+		}
+
+		if len(entries) > 0 {
+			filename := entries[0].Name()
+			f, err := os.Open(path.Join(stampCacheDir, filename))
+			if err == nil {
+				defer g.Guard(f.Close)
+
+				img, _, err := image.Decode(f)
+				if err != nil {
+					return nil, fmt.Errorf("decode cached stamp image (%s): %w", filename, err)
+				}
+
+				return img, nil
+			}
+		}
+
 		res, err := traqClient.GetStampImage(ctx, traqapi.GetStampImageParams{
 			StampId: stampID,
 		})
@@ -198,36 +265,51 @@ func newStampImagesStore(traqClient *traqapi.Client) (*sc.Cache[uuid.UUID, image
 			return nil, fmt.Errorf("get stamp image from traQ: %w", err)
 		}
 
-		var img image.Image
+		var r io.Reader
+		var ext string
 		switch res := res.(type) {
 		case *traqapi.GetStampImageNotFound:
-			return nil, fmt.Errorf("get stamp image from traQ: not found")
-
+			return nil, fmt.Errorf("stamp image not found")
 		case *traqapi.GetStampImageOKImageGIF:
-			img, _, err = image.Decode(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("decode file to image: %w", err)
-			}
-
+			r = res
+			ext = "gif"
 		case *traqapi.GetStampImageOKImageJpeg:
-			img, _, err = image.Decode(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("decode file to image: %w", err)
-			}
-
+			r = res
+			ext = "jpeg"
 		case *traqapi.GetStampImageOKImagePNG:
-			img, _, err = image.Decode(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("decode file to image: %w", err)
-			}
-
+			r = res
+			ext = "png"
 		case *traqapi.GetStampImageOKImageSvgXML:
-			c, err := canvas.ParseSVG(res.Data)
-			if err != nil {
-				return nil, fmt.Errorf("parse svg: %w", err)
-			}
+			r = res
+			ext = "svg"
+		default:
+			return nil, fmt.Errorf("unreachable error")
+		}
 
-			img = rasterizer.Draw(c, 96.0, canvas.DefaultColorSpace)
+		b, err := io.ReadAll(r)
+		if err != nil {
+			return nil, fmt.Errorf("read stamp image: %w", err)
+		}
+
+		img, _, err := image.Decode(bytes.NewReader(b))
+		if err != nil {
+			return nil, fmt.Errorf("decode stamp image: %w", err)
+		}
+
+		if err := cacheRoot.MkdirAll(stampID.String(), os.ModePerm); err != nil {
+			return nil, fmt.Errorf("create stamp image cache subdir (%s): %w", stampID.String(), err)
+		}
+
+		filename := fmt.Sprintf("%s/%s.%s", stampID, stampID, ext)
+		f, err := cacheRoot.Create(filename)
+		if err != nil {
+			return nil, fmt.Errorf("create temp file (%s) for stamp image: %w", filename, err)
+		}
+		defer g.Guard(f.Close)
+
+		_, err = io.Copy(f, bytes.NewReader(b))
+		if err != nil {
+			return nil, fmt.Errorf("copy stamp image data to temp file (%s): %w", filename, err)
 		}
 
 		return img, nil

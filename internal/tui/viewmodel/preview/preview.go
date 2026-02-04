@@ -3,9 +3,6 @@ package preview
 import (
 	"context"
 	"fmt"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
 	"time"
 
 	"github.com/blacktop/go-termimg"

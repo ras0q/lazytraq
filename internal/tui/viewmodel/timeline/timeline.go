@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
+	"github.com/blacktop/go-termimg"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
@@ -70,7 +70,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messagesFetchedMsg:
 		m.state.messages = msg
 		slices.Reverse(m.state.messages)
-		m.renderTimeline()
+		if err := m.renderTimeline(); err != nil {
+			cmds = append(cmds, func() tea.Msg {
+				return shared.ErrorMsg(fmt.Errorf("render timeline: %w", err))
+			})
+		}
 
 	case usersFetchedMsg:
 		m.state.users = msg
@@ -125,16 +129,13 @@ func (m *Model) fetchUsersCmd(ctx context.Context) tea.Cmd {
 	}
 }
 
-func (m *Model) renderTimeline() {
+func (m *Model) renderTimeline() error {
 	if len(m.state.messages) == 0 {
 		m.viewport.SetContent("No messages yet.")
-		return
+		return nil
 	}
 
-	var sb strings.Builder
-	separator := m.theme.Timeline.Separator.Render(" │ ")
-	indent := strings.Repeat(" ", 5)
-
+	renderedMessages := make([]string, 0, len(m.state.messages))
 	for _, message := range m.state.messages {
 		user := m.state.users[message.GetUserId()]
 		username := traqapiext.GetUsernameOrUnknown(&user)
@@ -145,27 +146,69 @@ func (m *Model) renderTimeline() {
 			renderedContent = message.GetContent()
 		}
 
-		lines := strings.Split(strings.TrimSpace(renderedContent), "\n")
-		lines = append(lines, "")
+		var renderedStamps string
+		stamps := message.GetStamps()
+		if len(stamps) > 0 {
+			slices.SortStableFunc(stamps, func(a, b traqapi.MessageStamp) int {
+				return a.GetCreatedAt().Compare(b.GetCreatedAt())
+			})
 
-		for j, line := range lines {
-			if j == 0 {
-				sb.WriteString(m.theme.Timeline.Time.Render(timestamp))
-				sb.WriteString(separator)
-				sb.WriteString(m.theme.Timeline.Username.Render("@" + username))
-				sb.WriteString("\n")
-				sb.WriteString(indent)
-				sb.WriteString(separator)
-				sb.WriteString(line)
-			} else {
-				sb.WriteString(indent)
-				sb.WriteString(separator)
-				sb.WriteString(line)
+			termProtocol := termimg.Halfblocks
+			stampWidth, stampHeight, stampSpacing := 10, 4, 1
+			columns := m.w / (stampWidth/2 + stampSpacing)
+			gallery := termimg.NewImageGallery(columns)
+			stampMap := make(map[uuid.UUID]struct{})
+			for _, stamp := range stamps {
+				stampID := stamp.GetStampId()
+				if _, ok := stampMap[stampID]; ok {
+					continue
+				}
+
+				stampMap[stampID] = struct{}{}
+
+				img, err := m.traqContext.StampImages.Get(context.Background(), stampID)
+				if err != nil {
+					return fmt.Errorf("load stamp image: %w", err)
+				}
+
+				termImg := termimg.New(img)
+				gallery.AddImage(termImg)
 			}
-			sb.WriteString("\n")
+
+			gallery.
+				SetProtocol(termProtocol).
+				SetImageSize(stampWidth, stampHeight).
+				SetSpacing(stampSpacing)
+			renderedStamps, err = gallery.Render()
+			if err != nil {
+				return fmt.Errorf("render stamp gallery: %w", err)
+			}
 		}
+
+		renderedMessages = append(renderedMessages, lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			m.theme.Timeline.Time.Render(timestamp),
+			m.theme.Timeline.MessageBox.
+				Render(
+					lipgloss.JoinVertical(
+						lipgloss.Left,
+						m.theme.Timeline.Username.Render("@"+username),
+						renderedContent,
+						"",
+						renderedStamps,
+					),
+				),
+		))
+
 	}
 
-	m.viewport.SetContent(sb.String())
+	m.viewport.SetContent(
+		lipgloss.JoinVertical(
+			lipgloss.Left,
+			renderedMessages...,
+		),
+	)
 	m.viewport.GotoBottom()
+
+	return nil
 }

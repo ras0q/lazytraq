@@ -13,6 +13,7 @@ require (
 	github.com/motoki317/sc v1.8.2
 	github.com/ogen-go/ogen v1.16.0
 	github.com/ras0q/bubbletree v0.0.0-20251111115524-4ade398dd740
+	github.com/ras0q/goalie v0.6.0
 	github.com/traPtitech/go-traq-oauth2 v1.0.0
 	golang.org/x/oauth2 v0.33.0
 	golang.org/x/sync v0.19.0

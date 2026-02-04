@@ -158,6 +158,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/ras0q/bubbletree v0.0.0-20251111115524-4ade398dd740 h1:nnej7XU2qx+BpGwuoSJdxeoFVuGlTau9hPi0RsBkRI0=
 github.com/ras0q/bubbletree v0.0.0-20251111115524-4ade398dd740/go.mod h1:oBGYrtn3jA9nHsT0K5xvRqVsY99QbB98Dez45HXNkxA=
+github.com/ras0q/goalie v0.6.0 h1:/Lr0+z3UKOEyfg37TaRIubVJ6LPHCu35tceoUDz8OFw=
+github.com/ras0q/goalie v0.6.0/go.mod h1:73FIdgMtezqT7ckMo9Vu70D1E0V4qAaPkNkBA+KCzPQ=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=

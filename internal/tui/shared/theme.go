@@ -25,9 +25,10 @@ type HeaderStyles struct {
 
 // TimelineStyles defines styling for timeline component
 type TimelineStyles struct {
-	Time      lipgloss.Style
-	Username  lipgloss.Style
-	Separator lipgloss.Style
+	Time       lipgloss.Style
+	MessageBox lipgloss.Style
+	Username   lipgloss.Style
+	Separator  lipgloss.Style
 }
 
 // PreviewStyles defines styling for preview component
@@ -65,7 +66,12 @@ func DefaultTheme() Theme {
 			Username: lipgloss.NewStyle().Bold(true),
 		},
 		Timeline: TimelineStyles{
-			Time:      lipgloss.NewStyle().Foreground(colors.Accent),
+			Time: lipgloss.NewStyle().Foreground(colors.Accent).PaddingRight(1),
+			MessageBox: lipgloss.NewStyle().
+				BorderStyle(lipgloss.Border{Left: "│"}).
+				BorderLeft(true).
+				BorderForeground(colors.Muted).
+				PaddingLeft(1),
 			Username:  lipgloss.NewStyle().Foreground(colors.Primary).Bold(true),
 			Separator: lipgloss.NewStyle().Foreground(colors.Muted),
 		},
