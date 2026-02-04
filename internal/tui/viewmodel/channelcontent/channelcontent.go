@@ -1,4 +1,4 @@
-package timeline
+package channelcontent
 
 import (
 	"context"
@@ -70,9 +70,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messagesFetchedMsg:
 		m.state.messages = msg
 		slices.Reverse(m.state.messages)
-		if err := m.renderTimeline(); err != nil {
+		if err := m.renderMessages(); err != nil {
 			cmds = append(cmds, func() tea.Msg {
-				return shared.ErrorMsg(fmt.Errorf("render timeline: %w", err))
+				return shared.ErrorMsg(fmt.Errorf("render messages: %w", err))
 			})
 		}
 
@@ -129,7 +129,7 @@ func (m *Model) fetchUsersCmd(ctx context.Context) tea.Cmd {
 	}
 }
 
-func (m *Model) renderTimeline() error {
+func (m *Model) renderMessages() error {
 	if len(m.state.messages) == 0 {
 		m.viewport.SetContent("No messages yet.")
 		return nil
@@ -187,12 +187,12 @@ func (m *Model) renderTimeline() error {
 
 		renderedMessages = append(renderedMessages, lipgloss.JoinHorizontal(
 			lipgloss.Top,
-			m.theme.Timeline.Time.Render(timestamp),
-			m.theme.Timeline.MessageBox.
+			m.theme.ChannelContent.Time.Render(timestamp),
+			m.theme.ChannelContent.MessageBox.
 				Render(
 					lipgloss.JoinVertical(
 						lipgloss.Left,
-						m.theme.Timeline.Username.Render("@"+username),
+						m.theme.ChannelContent.Username.Render("@"+username),
 						renderedContent,
 						"",
 						renderedStamps,

@@ -23,8 +23,8 @@ type HeaderStyles struct {
 	Username lipgloss.Style
 }
 
-// TimelineStyles defines styling for timeline component
-type TimelineStyles struct {
+// ChannelContentStyles defines styling for channelContent component
+type ChannelContentStyles struct {
 	Time       lipgloss.Style
 	MessageBox lipgloss.Style
 	Username   lipgloss.Style
@@ -33,10 +33,10 @@ type TimelineStyles struct {
 
 // Theme aggregates all style definitions
 type Theme struct {
-	Colors   Colors
-	Border   BorderStyles
-	Header   HeaderStyles
-	Timeline TimelineStyles
+	Colors         Colors
+	Border         BorderStyles
+	Header         HeaderStyles
+	ChannelContent ChannelContentStyles
 }
 
 // DefaultTheme returns the default color scheme
@@ -59,7 +59,7 @@ func DefaultTheme() Theme {
 			Host:     lipgloss.NewStyle().Bold(true),
 			Username: lipgloss.NewStyle().Bold(true),
 		},
-		Timeline: TimelineStyles{
+		ChannelContent: ChannelContentStyles{
 			Time: lipgloss.NewStyle().Foreground(colors.Accent).PaddingRight(1),
 			MessageBox: lipgloss.NewStyle().
 				BorderStyle(lipgloss.Border{Left: "│"}).

@@ -10,19 +10,19 @@ import (
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/channelcontent"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/channeltree"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/header"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/messageinput"
-	"github.com/ras0q/lazytraq/internal/tui/viewmodel/timeline"
 )
 
 type AppModel struct {
-	theme        shared.Theme
-	header       *header.Model
-	channelTree  *channeltree.Model
-	messageInput *messageinput.Model
-	timeline     *timeline.Model
-	Errors       []error
+	theme          shared.Theme
+	header         *header.Model
+	channelTree    *channeltree.Model
+	messageInput   *messageinput.Model
+	channelContent *channelcontent.Model
+	Errors         []error
 
 	focus   focusArea
 	channel *traqapi.Channel
@@ -34,7 +34,7 @@ const (
 	focusAreaHeader focusArea = iota + 1
 	focusAreaSidebar
 	focusAreaMessageInput
-	focusAreaTimeline
+	focusAreaChannelContent
 )
 
 func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySource) (*AppModel, error) {
@@ -51,7 +51,7 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 	// ---------------------
 	// |       header      |
 	// |-------------------|
-	// |    |   timeline   |
+	// |    |   content    |
 	// | ct |              |
 	// |    |--------------|
 	// |    | messageInput |
@@ -60,13 +60,13 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 	headerHeight := 3
 	mainHeight := h - headerHeight
 	sidebarHeight := mainHeight
-	timelineHeight := mainHeight * 7 / 10
-	messageInputHeight := mainHeight - timelineHeight
+	channelContentHeight := mainHeight * 7 / 10
+	messageInputHeight := mainHeight - channelContentHeight
 
 	headerWidth := w
 	sidebarWidth := w * 2 / 10
 	messageInputWidth := w - sidebarWidth
-	timelineWidth := w - sidebarWidth
+	channelContentWidth := w - sidebarWidth
 	padding := 2
 
 	theme := shared.DefaultTheme()
@@ -90,9 +90,9 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			messageInputHeight-padding,
 			traqContext,
 		),
-		timeline: timeline.New(
-			timelineWidth-padding,
-			timelineHeight-padding,
+		channelContent: channelcontent.New(
+			channelContentWidth-padding,
+			channelContentHeight-padding,
 			traqContext,
 			theme,
 		),
@@ -109,7 +109,7 @@ func (m *AppModel) Init() tea.Cmd {
 		m.header.Init(),
 		m.channelTree.Init(),
 		m.messageInput.Init(),
-		m.timeline.Init(),
+		m.channelContent.Init(),
 	)
 }
 
@@ -140,10 +140,10 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			break
 		}
 
-		m.focus = focusAreaTimeline
+		m.focus = focusAreaChannelContent
 		m.channel = channel
 
-		cmd := m.timeline.FetchMessagesCmd(context.Background(), channel.ID)
+		cmd := m.channelContent.FetchMessagesCmd(context.Background(), channel.ID)
 		cmds = append(cmds, cmd)
 
 	case tea.KeyMsg:
@@ -179,9 +179,9 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.messageInput = _messageInput.(*messageinput.Model)
 				cmds = append(cmds, cmd)
 
-			case focusAreaTimeline:
-				_timeline, cmd := m.timeline.Update(msg)
-				m.timeline = _timeline.(*timeline.Model)
+			case focusAreaChannelContent:
+				_channelContent, cmd := m.channelContent.Update(msg)
+				m.channelContent = _channelContent.(*channelcontent.Model)
 				cmds = append(cmds, cmd)
 			}
 		}
@@ -199,8 +199,8 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.messageInput = _messageInput.(*messageinput.Model)
 		cmds = append(cmds, cmd)
 
-		_timeline, cmd := m.timeline.Update(msg)
-		m.timeline = _timeline.(*timeline.Model)
+		_channelContent, cmd := m.channelContent.Update(msg)
+		m.channelContent = _channelContent.(*channelcontent.Model)
 		cmds = append(cmds, cmd)
 	}
 
@@ -216,7 +216,7 @@ func (m *AppModel) View() string {
 			m.theme.WithBorder(m.channelTree.View(), m.focus == focusAreaSidebar),
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				m.theme.WithBorder(m.timeline.View(), m.focus == focusAreaTimeline),
+				m.theme.WithBorder(m.channelContent.View(), m.focus == focusAreaChannelContent),
 				m.theme.WithBorder(m.messageInput.View(), m.focus == focusAreaMessageInput),
 			),
 		),
