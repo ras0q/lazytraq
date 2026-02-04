@@ -1,14 +1,16 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
+	"path"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/ras0q/goalie"
 	"github.com/ras0q/lazytraq/internal/auth"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui"
@@ -18,11 +20,14 @@ import (
 func main() {
 	ctx := context.Background()
 	if err := runProgram(ctx); err != nil {
-		log.Fatalf("error: %v", err)
+		panic(err)
 	}
 }
 
-func runProgram(ctx context.Context) error {
+func runProgram(ctx context.Context) (err error) {
+	g := goalie.New()
+	defer g.Collect(&err)
+
 	var isDebugMode bool
 	if v, ok := os.LookupEnv("LAZYTRAQ_DEBUG"); ok && v != "" {
 		isDebugMode = true
@@ -31,6 +36,25 @@ func runProgram(ctx context.Context) error {
 	if isDebugMode {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
+
+	logDir := cmp.Or(
+		os.Getenv("XDG_STATE_HOME"),
+		path.Join(os.Getenv("HOME"), ".local", "state"),
+	)
+	logFilePath := path.Join(logDir, "lazytraq", "lazytraq.log")
+	if err := os.MkdirAll(path.Dir(logFilePath), 0o755); err != nil {
+		return fmt.Errorf("create log directory: %w", err)
+	}
+
+	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fmt.Errorf("open log file: %w", err)
+	}
+	defer g.Guard(logFile.Close)
+
+	slog.SetDefault(
+		slog.New(slog.NewJSONHandler(logFile, nil)),
+	)
 
 	apiHost := "q-dev.trapti.tech"
 
@@ -60,11 +84,7 @@ func runProgram(ctx context.Context) error {
 
 	slog.DebugContext(ctx, "created root model")
 
-	opts := []tea.ProgramOption{}
-	if !isDebugMode {
-		opts = append(opts, tea.WithAltScreen())
-	}
-
+	opts := []tea.ProgramOption{tea.WithAltScreen()}
 	p := tea.NewProgram(model, opts...)
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("run tea program: %w", err)
