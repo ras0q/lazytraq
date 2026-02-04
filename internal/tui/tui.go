@@ -10,18 +10,18 @@ import (
 	"github.com/ras0q/lazytraq/internal/traqapi"
 	"github.com/ras0q/lazytraq/internal/traqapiext"
 	"github.com/ras0q/lazytraq/internal/tui/shared"
+	"github.com/ras0q/lazytraq/internal/tui/viewmodel/channeltree"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/content"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/header"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/messageinput"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/preview"
-	"github.com/ras0q/lazytraq/internal/tui/viewmodel/sidebar"
 	"github.com/ras0q/lazytraq/internal/tui/viewmodel/timeline"
 )
 
 type AppModel struct {
 	theme        shared.Theme
 	header       *header.Model
-	sidebar      *sidebar.Model
+	channelTree  *channeltree.Model
 	content      *content.Model
 	messageInput *messageinput.Model
 	preview      *preview.Model
@@ -79,7 +79,7 @@ func NewAppModel(w, h int, apiHost string, securitySource *traqapiext.SecuritySo
 			traqContext,
 			theme,
 		),
-		sidebar: sidebar.New(
+		channelTree: channeltree.New(
 			sidebarWidth-bp,
 			sidebarHeight-bp,
 			traqContext,
@@ -117,7 +117,7 @@ var _ tea.Model = (*AppModel)(nil)
 func (m *AppModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.header.Init(),
-		m.sidebar.Init(),
+		m.channelTree.Init(),
 		m.content.Init(),
 		m.messageInput.Init(),
 		m.preview.Init(),
@@ -190,8 +190,8 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, cmd)
 
 			case focusAreaSidebar:
-				_sidebar, cmd := m.sidebar.Update(msg)
-				m.sidebar = _sidebar.(*sidebar.Model)
+				_sidebar, cmd := m.channelTree.Update(msg)
+				m.channelTree = _sidebar.(*channeltree.Model)
 				cmds = append(cmds, cmd)
 
 			case focusAreaContent:
@@ -221,8 +221,8 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.header = _header.(*header.Model)
 		cmds = append(cmds, cmd)
 
-		_sidebar, cmd := m.sidebar.Update(msg)
-		m.sidebar = _sidebar.(*sidebar.Model)
+		_sidebar, cmd := m.channelTree.Update(msg)
+		m.channelTree = _sidebar.(*channeltree.Model)
 		cmds = append(cmds, cmd)
 
 		_content, cmd := m.content.Update(msg)
@@ -251,7 +251,7 @@ func (m *AppModel) View() string {
 		m.theme.WithBorder(m.header.View(), m.focus == focusAreaHeader),
 		lipgloss.JoinHorizontal(
 			lipgloss.Top,
-			m.theme.WithBorder(m.sidebar.View(), m.focus == focusAreaSidebar),
+			m.theme.WithBorder(m.channelTree.View(), m.focus == focusAreaSidebar),
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				m.theme.WithBorder(m.timeline.View(), m.focus == focusAreaTimeline),
